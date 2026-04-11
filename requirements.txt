@@ -1,0 +1,6 @@
+gradio==4.44.0
+pyaudioop
+requests>=2.31.0
+Pillow>=10.0.0
+huggingface_hub>=0.30.0
+audioop-lts
