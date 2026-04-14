@@ -36,7 +36,9 @@ class ImageEngine:
         self,
         prompt: str,
         model_id: str,
-        num_inference_steps: int = 25,
+        width: int = 512,
+        height: int = 512,
+        steps: int = 20,
         guidance_scale: float = 7.5,
         negative_prompt: str = "blurry, low quality, distorted, ugly, bad anatomy",
         retries: int = 3,
@@ -49,7 +51,7 @@ class ImageEngine:
         payload = {
             "inputs": enhanced,
             "parameters": {
-                "num_inference_steps": num_inference_steps,
+                "num_inference_steps": steps,
                 "guidance_scale": guidance_scale,
                 "negative_prompt": negative_prompt,
             },
