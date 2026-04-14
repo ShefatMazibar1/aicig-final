@@ -11,22 +11,22 @@ from datetime import datetime
 DEFAULT_PROFILES = {
     "balanced": {
         "temperature": 0.7, "max_tokens": 300, "top_p": 0.9,
-        "repetition_penalty": 1.1, "image_steps": 25, "image_guidance": 7.5,
+        "repetition_penalty": 1.1,
         "description": "Good balance of creativity and coherence"
     },
     "creative": {
         "temperature": 1.1, "max_tokens": 400, "top_p": 0.95,
-        "repetition_penalty": 1.0, "image_steps": 30, "image_guidance": 6.0,
+        "repetition_penalty": 1.0,
         "description": "More imaginative, less predictable outputs"
     },
     "precise": {
         "temperature": 0.4, "max_tokens": 250, "top_p": 0.8,
-        "repetition_penalty": 1.2, "image_steps": 35, "image_guidance": 9.0,
+        "repetition_penalty": 1.2,
         "description": "Focused, structured, closely follows the prompt"
     },
     "fast": {
         "temperature": 0.7, "max_tokens": 150, "top_p": 0.9,
-        "repetition_penalty": 1.1, "image_steps": 15, "image_guidance": 7.5,
+        "repetition_penalty": 1.1,
         "description": "Quick generation, shorter outputs"
     }
 }
@@ -134,8 +134,16 @@ class ModelManager:
         return list(DEFAULT_PROFILES.keys())
     
     def get_profile(self, profile_name):
-        """Get profile parameters."""
-        return DEFAULT_PROFILES.get(profile_name, DEFAULT_PROFILES["balanced"]).copy()
+        """Get profile parameters - only text generation params."""
+        profile = DEFAULT_PROFILES.get(profile_name, DEFAULT_PROFILES["balanced"]).copy()
+        # Only return params that TextEngine accepts
+        text_params = {
+            "temperature": profile.get("temperature", 0.7),
+            "max_tokens": profile.get("max_tokens", 300),
+            "top_p": profile.get("top_p", 0.9),
+            "repetition_penalty": profile.get("repetition_penalty", 1.1)
+        }
+        return text_params
     
     def get_full_config(self):
         """Return full configuration for display."""
@@ -182,18 +190,14 @@ class ModelManager:
         return {"success": True, "params": DEFAULT_PROFILES[profile_name]}
 
     def set_custom_params(self, **kwargs):
-        allowed = {"temperature", "max_tokens", "top_p", "repetition_penalty",
-                   "image_steps", "image_guidance"}
+        allowed = {"temperature", "max_tokens", "top_p", "repetition_penalty"}
         updates = {k: v for k, v in kwargs.items() if k in allowed}
         self.config["custom_params"].update(updates)
         self.save_config()
         return {"success": True, "updated": updates}
 
     def get_params(self):
-        profile = self.config.get("active_profile", "balanced")
-        params = DEFAULT_PROFILES[profile].copy()
-        params.update(self.config.get("custom_params", {}))
-        return params
+        return self.get_profile(self.config.get("active_profile", "balanced"))
 
     BLOCKED_TERMS = ["nude", "naked", "explicit", "nsfw", "violence",
                      "gore", "weapon", "illegal", "drug"]
