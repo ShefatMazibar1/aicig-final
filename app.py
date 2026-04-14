@@ -6,59 +6,110 @@ from image_engine import ImageEngine
 from history_logger import HistoryLogger
 from evaluation import Evaluator
 
+# Check HF_TOKEN
 hf_token = os.environ.get("HF_TOKEN", "")
-manager = ModelManager()
-text_engine = TextEngine(hf_token)
-image_engine = ImageEngine(hf_token)
-logger = HistoryLogger()
-evaluator = Evaluator()
+if not hf_token:
+    print("WARNING: HF_TOKEN not set! Please set it in Render environment variables.")
+
+try:
+    manager = ModelManager()
+    text_engine = TextEngine(hf_token)
+    image_engine = ImageEngine(hf_token)
+    logger = HistoryLogger()
+    evaluator = Evaluator()
+    print("All engines initialized successfully")
+except Exception as e:
+    print(f"Error initializing engines: {e}")
+    raise
 
 def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_p):
-    if not prompt.strip():
-        return "Please enter a prompt.", "", ""
-    config = manager.get_model_config(model_key)
-    params = manager.get_profile(profile_name)
-    params.update({"max_tokens": int(max_tokens), "temperature": temperature, "top_p": top_p})
-    text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
-    bleu = evaluator.bleu_score(prompt, text)
-    logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
-    return text, f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s", ""
+    try:
+        if not prompt.strip():
+            return "Please enter a prompt.", "", ""
+        if not hf_token:
+            return "Error: HF_TOKEN not configured. Please set your Hugging Face token in Render environment variables.", "", ""
+        
+        config = manager.get_model_config(model_key)
+        params = manager.get_profile(profile_name)
+        params.update({"max_tokens": int(max_tokens), "temperature": temperature, "top_p": top_p})
+        
+        text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
+        
+        if text.startswith("Error:"):
+            return text, "", ""
+        
+        bleu = evaluator.bleu_score(prompt, text)
+        logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
+        return text, f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s", ""
+    except Exception as e:
+        print(f"Text generation error: {e}")
+        return f"Error: {str(e)}", "", ""
 
 def generate_image(prompt, model_key, width, height, steps):
-    if not prompt.strip():
-        return None, "Please enter a prompt."
-    config = manager.get_image_model_config(model_key)
-    image, elapsed = image_engine.generate(prompt, config["model_id"], int(width), int(height), int(steps))
-    logger.log("image", prompt, "image_generated", model_key, {}, {"time": elapsed})
-    if image:
-        return image, f"Time: {elapsed:.2f}s"
-    return None, "Image generation failed. Try again."
+    try:
+        if not prompt.strip():
+            return None, "Please enter a prompt."
+        if not hf_token:
+            return None, "Error: HF_TOKEN not configured. Please set your Hugging Face token in Render environment variables."
+        
+        config = manager.get_image_model_config(model_key)
+        image, elapsed = image_engine.generate(prompt, config["model_id"], int(width), int(height), int(steps))
+        
+        logger.log("image", prompt, "image_generated", model_key, {}, {"time": elapsed})
+        
+        if image:
+            return image, f"Time: {elapsed:.2f}s"
+        return None, f"Image generation failed. Model may be loading or unavailable. Time: {elapsed:.2f}s"
+    except Exception as e:
+        print(f"Image generation error: {e}")
+        return None, f"Error: {str(e)}"
 
 def generate_both(prompt, text_model, image_model, profile, max_tokens, temperature, top_p, width, height, steps):
-    text_out, text_meta, _ = generate_text(prompt, text_model, profile, max_tokens, temperature, top_p)
-    image_out, image_meta = generate_image(prompt, image_model, width, height, steps)
-    return text_out, text_meta, image_out, image_meta
+    try:
+        text_out, text_meta, _ = generate_text(prompt, text_model, profile, max_tokens, temperature, top_p)
+        image_out, image_meta = generate_image(prompt, image_model, width, height, steps)
+        return text_out, text_meta, image_out, image_meta
+    except Exception as e:
+        print(f"Generate both error: {e}")
+        return f"Error: {str(e)}", "", None, ""
 
 def get_history():
-    entries = logger.get_history(20)
-    if not entries:
-        return "No history yet."
-    lines = []
-    for e in reversed(entries):
-        lines.append(f"**{e['type'].upper()}** [{e['model']}] {e['timestamp'][:19]}\n> {e['prompt'][:80]}...")
-    return "\n\n".join(lines)
+    try:
+        entries = logger.get_history(20)
+        if not entries:
+            return "No history yet."
+        lines = []
+        for e in reversed(entries):
+            lines.append(f"**{e['type'].upper()}** [{e['model']}] {e['timestamp'][:19]}\n> {e['prompt'][:80]}...")
+        return "\n\n".join(lines)
+    except Exception as e:
+        return f"Error loading history: {e}"
 
 def export_history():
-    path = logger.export_csv()
-    return path
+    try:
+        path = logger.export_csv()
+        return path
+    except Exception as e:
+        return f"Error: {e}"
 
 def rate_last(rating):
-    logger.rate_last(int(rating))
-    return f"Rated {rating}/5 ✓"
+    try:
+        logger.rate_last(int(rating))
+        return f"Rated {rating}/5 ✓"
+    except Exception as e:
+        return f"Error: {e}"
 
-text_models = manager.get_text_model_keys()
-image_models = manager.get_image_model_keys()
-profiles = manager.get_profile_names()
+# Get model lists safely
+try:
+    text_models = manager.get_text_model_keys()
+    image_models = manager.get_image_model_keys()
+    profiles = manager.get_profile_names()
+    print(f"Available models: text={text_models}, image={image_models}, profiles={profiles}")
+except Exception as e:
+    print(f"Error getting model lists: {e}")
+    text_models = ["qwen-7b", "llama-8b", "deepseek"]
+    image_models = ["stable-diffusion-v1-5", "dreamshaper", "realistic-vision"]
+    profiles = ["balanced", "creative", "precise", "fast"]
 
 with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 🤖 AICIG — AI Content & Image Generator\n**Final Year Project** | Local LLM + Image Generation System")
@@ -69,8 +120,8 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                 with gr.Column(scale=2):
                     t_prompt = gr.Textbox(label="Prompt", placeholder="Write a blog post about...", lines=4)
                     with gr.Row():
-                        t_model = gr.Dropdown(choices=text_models, value=text_models[0], label="Model")
-                        t_profile = gr.Dropdown(choices=profiles, value=profiles[0], label="Profile")
+                        t_model = gr.Dropdown(choices=text_models, value=text_models[0] if text_models else "qwen-7b", label="Model")
+                        t_profile = gr.Dropdown(choices=profiles, value=profiles[0] if profiles else "balanced", label="Profile")
                     with gr.Row():
                         t_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         t_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
@@ -90,7 +141,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             with gr.Row():
                 with gr.Column(scale=2):
                     i_prompt = gr.Textbox(label="Image Prompt", placeholder="A futuristic city at sunset...", lines=4)
-                    i_model = gr.Dropdown(choices=image_models, value=image_models[0], label="Image Model")
+                    i_model = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "stable-diffusion-v1-5", label="Image Model")
                     with gr.Row():
                         i_width = gr.Slider(256, 768, value=512, step=64, label="Width")
                         i_height = gr.Slider(256, 768, value=512, step=64, label="Height")
@@ -107,9 +158,9 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                 with gr.Column(scale=2):
                     b_prompt = gr.Textbox(label="Prompt", placeholder="Describe something to write about AND generate an image of...", lines=4)
                     with gr.Row():
-                        b_tmodel = gr.Dropdown(choices=text_models, value=text_models[0], label="Text Model")
-                        b_imodel = gr.Dropdown(choices=image_models, value=image_models[0], label="Image Model")
-                    b_profile = gr.Dropdown(choices=profiles, value=profiles[0], label="Profile")
+                        b_tmodel = gr.Dropdown(choices=text_models, value=text_models[0] if text_models else "qwen-7b", label="Text Model")
+                        b_imodel = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "stable-diffusion-v1-5", label="Image Model")
+                    b_profile = gr.Dropdown(choices=profiles, value=profiles[0] if profiles else "balanced", label="Profile")
                     with gr.Row():
                         b_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         b_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
@@ -130,17 +181,20 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
         with gr.Tab("🗂️ Model Manager"):
             gr.Markdown("### Available Models & Configurations")
             def show_config():
-                cfg = manager.get_full_config()
-                lines = ["**Text Models:**"]
-                for k, v in cfg["text_models"].items():
-                    lines.append(f"- `{k}`: {v['name']} — {v['description']}")
-                lines.append("\n**Image Models:**")
-                for k, v in cfg["image_models"].items():
-                    lines.append(f"- `{k}`: {v['name']} — {v['description']}")
-                lines.append("\n**Profiles:**")
-                for k, v in cfg["profiles"].items():
-                    lines.append(f"- `{k}`: temp={v.get('temperature', '?')}, top_p={v.get('top_p', '?')}")
-                return "\n".join(lines)
+                try:
+                    cfg = manager.get_full_config()
+                    lines = ["**Text Models:**"]
+                    for k, v in cfg["text_models"].items():
+                        lines.append(f"- `{k}`: {v['name']} — {v['description']}")
+                    lines.append("\n**Image Models:**")
+                    for k, v in cfg["image_models"].items():
+                        lines.append(f"- `{k}`: {v['name']} — {v['description']}")
+                    lines.append("\n**Profiles:**")
+                    for k, v in cfg["profiles"].items():
+                        lines.append(f"- `{k}`: temp={v.get('temperature', '?')}, top_p={v.get('top_p', '?')}")
+                    return "\n".join(lines)
+                except Exception as e:
+                    return f"Error loading config: {e}"
             cfg_out = gr.Markdown()
             gr.Button("Load Config").click(show_config, [], [cfg_out])
 
