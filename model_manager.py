@@ -31,7 +31,6 @@ DEFAULT_PROFILES = {
     }
 }
 
-# Models confirmed working via HF router (router.huggingface.co/v1)
 AVAILABLE_TEXT_MODELS = {
     "qwen-7b": {
         "model_id": "Qwen/Qwen2.5-7B-Instruct",
@@ -79,8 +78,6 @@ class ModelManager:
     """
     Central manager for all AI model configuration, selection,
     and parameter control in the AICIG system.
-    Provides 'Management of Systems' capability beyond simple
-    prompt-in / output-out interaction.
     """
 
     def __init__(self, config_path="config.json"):
@@ -115,6 +112,40 @@ class ModelManager:
                 json.dump(self.config, f, indent=2)
         except Exception:
             pass
+
+    def get_model_config(self, model_key):
+        """Get text model config by key."""
+        return AVAILABLE_TEXT_MODELS.get(model_key, AVAILABLE_TEXT_MODELS["qwen-7b"])
+    
+    def get_image_model_config(self, model_key):
+        """Get image model config by key."""
+        return AVAILABLE_IMAGE_MODELS.get(model_key, AVAILABLE_IMAGE_MODELS["stable-diffusion-v1-5"])
+    
+    def get_text_model_keys(self):
+        """Return list of text model keys."""
+        return list(AVAILABLE_TEXT_MODELS.keys())
+    
+    def get_image_model_keys(self):
+        """Return list of image model keys."""
+        return list(AVAILABLE_IMAGE_MODELS.keys())
+    
+    def get_profile_names(self):
+        """Return list of profile names."""
+        return list(DEFAULT_PROFILES.keys())
+    
+    def get_profile(self, profile_name):
+        """Get profile parameters."""
+        return DEFAULT_PROFILES.get(profile_name, DEFAULT_PROFILES["balanced"]).copy()
+    
+    def get_full_config(self):
+        """Return full configuration for display."""
+        return {
+            "text_models": {k: {"name": v["display_name"], "description": v["description"]} 
+                          for k, v in AVAILABLE_TEXT_MODELS.items()},
+            "image_models": {k: {"name": v["display_name"], "description": v["description"]} 
+                           for k, v in AVAILABLE_IMAGE_MODELS.items()},
+            "profiles": DEFAULT_PROFILES
+        }
 
     def set_text_model(self, model_key):
         if model_key not in AVAILABLE_TEXT_MODELS:
