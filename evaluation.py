@@ -19,8 +19,6 @@ class Evaluator:
     - Prompt-relevance keyword scoring
     """
 
-    # ── BLEU Score ────────────────────────────────────────────────────────────
-
     @staticmethod
     def tokenize(text: str) -> list:
         """Simple whitespace + punctuation tokenizer."""
@@ -44,7 +42,6 @@ class Evaluator:
         if not hyp_tokens or not ref_tokens:
             return 0.0
 
-        # Brevity penalty
         bp = min(1.0, math.exp(1 - len(ref_tokens) / max(len(hyp_tokens), 1)))
 
         precisions = []
@@ -60,12 +57,9 @@ class Evaluator:
             )
             precisions.append(clipped / sum(hyp_ngrams.values()))
 
-        # Geometric mean with smoothing
         smoothed = [p if p > 0 else 1e-10 for p in precisions]
         log_avg = sum(math.log(p) for p in smoothed) / max_n
         return round(bp * math.exp(log_avg), 4)
-
-    # ── Prompt relevance ─────────────────────────────────────────────────────
 
     @classmethod
     def prompt_relevance(cls, generated: str, prompt: str) -> float:
@@ -88,8 +82,6 @@ class Evaluator:
         overlap = len(prompt_words & gen_words) / len(prompt_words)
         return round(overlap, 4)
 
-    # ── Readability ───────────────────────────────────────────────────────────
-
     @staticmethod
     def avg_sentence_length(text: str) -> float:
         """Average words per sentence."""
@@ -103,8 +95,6 @@ class Evaluator:
     @staticmethod
     def word_count(text: str) -> int:
         return len(text.split())
-
-    # ── Combined report ───────────────────────────────────────────────────────
 
     @classmethod
     def evaluate(
@@ -124,7 +114,6 @@ class Evaluator:
         if reference:
             report["bleu_score"] = cls.bleu_score(generated, reference)
         else:
-            # Self-BLEU: use prompt as pseudo-reference for quick quality signal
             report["bleu_score"] = cls.bleu_score(generated, prompt)
         return report
 
