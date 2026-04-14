@@ -8,7 +8,7 @@ import io
 import time
 import requests
 from PIL import Image
-from typing import Optional
+from typing import Optional, Tuple
 
 
 HF_API_URL = "https://api-inference.huggingface.co/models/"
@@ -44,7 +44,7 @@ class ImageEngine:
         guidance_scale: float = 7.5,
         negative_prompt: str = "blurry, low quality, distorted, ugly, bad anatomy",
         retries: int = 3,
-    ) -> tuple[Optional[Image.Image], float]:
+    ) -> Tuple[Optional[Image.Image], float]:
         """
         Generate an image from a prompt.
         Returns (PIL Image or None, duration_seconds).
@@ -53,6 +53,8 @@ class ImageEngine:
             return None, 0
             
         enhanced = self._enhance_prompt(prompt)
+        
+        # Try different payload formats - some models accept width/height, others don't
         payload = {
             "inputs": enhanced,
             "parameters": {
@@ -68,51 +70,97 @@ class ImageEngine:
 
         url = HF_API_URL + model_id
         start = time.time()
-        print(f"Generating image with model: {model_id}")
+        print(f"Generating image with model: {model_id}, steps: {steps}")
 
         for attempt in range(retries):
             try:
+                print(f"Attempt {attempt + 1}/{retries}...")
                 resp = requests.post(
-                    url, headers=self.headers, json=payload, timeout=120
+                    url, 
+                    headers=self.headers, 
+                    json=payload, 
+                    timeout=180  # Increased timeout for image generation
                 )
                 duration = time.time() - start
 
                 if resp.status_code == 200:
                     try:
+                        # Check if response is an image
+                        content_type = resp.headers.get('content-type', '')
+                        if 'image' in content_type:
+                            img = Image.open(io.BytesIO(resp.content))
+                            print(f"Image generated successfully in {duration:.2f}s")
+                            return img, duration
+                        
+                        # Try to parse as JSON (some APIs return base64)
+                        try:
+                            data = resp.json()
+                            if isinstance(data, list) and len(data) > 0:
+                                # Handle list response
+                                if isinstance(data[0], dict) and 'image' in data[0]:
+                                    import base64
+                                    img_data = base64.b64decode(data[0]['image'])
+                                    img = Image.open(io.BytesIO(img_data))
+                                    return img, duration
+                                elif isinstance(data[0], str):
+                                    # Base64 encoded image
+                                    import base64
+                                    img_data = base64.b64decode(data[0])
+                                    img = Image.open(io.BytesIO(img_data))
+                                    return img, duration
+                            elif isinstance(data, dict):
+                                if 'image' in data:
+                                    import base64
+                                    img_data = base64.b64decode(data['image'])
+                                    img = Image.open(io.BytesIO(img_data))
+                                    return img, duration
+                        except:
+                            pass
+                        
+                        # Try direct image open
                         img = Image.open(io.BytesIO(resp.content))
-                        print(f"Image generated in {duration:.2f}s")
                         return img, duration
+                        
                     except Exception as e:
-                        print(f"Error opening image: {e}")
+                        print(f"Error processing image: {e}")
                         return None, duration
 
                 elif resp.status_code == 503:
+                    # Model is loading
                     wait = 20
                     try:
-                        wait = resp.json().get("estimated_time", 20)
-                    except Exception:
-                        pass
-                    print(f"Model loading, waiting {wait}s... (attempt {attempt+1}/{retries})")
-                    time.sleep(min(wait, 40))
+                        error_data = resp.json()
+                        wait = error_data.get("estimated_time", 20)
+                        print(f"Model loading, waiting {wait:.0f}s...")
+                    except:
+                        print(f"Model loading, waiting 20s...")
+                    time.sleep(min(wait, 60))
                     continue
 
                 elif resp.status_code == 401:
-                    print(f"Invalid token error")
+                    print(f"Authentication error - invalid HF_TOKEN")
                     return None, time.time() - start
 
                 elif resp.status_code == 429:
-                    print(f"Rate limit error")
+                    print(f"Rate limit exceeded")
                     return None, time.time() - start
 
                 else:
-                    print(f"Error status: {resp.status_code}, {resp.text[:200]}")
+                    error_text = resp.text[:200]
+                    print(f"Error {resp.status_code}: {error_text}")
+                    # If it's a payload error, try simpler format
+                    if attempt == 0 and (resp.status_code == 422 or "parameter" in error_text.lower()):
+                        print("Trying simpler payload format...")
+                        payload = {"inputs": enhanced}  # Simplified payload
+                        continue
                     return None, time.time() - start
 
             except requests.exceptions.Timeout:
-                print(f"Timeout on attempt {attempt+1}")
+                print(f"Timeout on attempt {attempt + 1}")
                 if attempt == retries - 1:
                     return None, time.time() - start
                 time.sleep(10)
+                
             except Exception as e:
                 print(f"Exception: {e}")
                 return None, time.time() - start
