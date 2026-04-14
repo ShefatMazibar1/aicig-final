@@ -19,7 +19,7 @@ def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_
     config = manager.get_model_config(model_key)
     params = manager.get_profile(profile_name)
     params.update({"max_tokens": int(max_tokens), "temperature": temperature, "top_p": top_p})
-    text, elapsed = text_engine.generate(prompt, config["id"], **params)
+    text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
     bleu = evaluator.bleu_score(prompt, text)
     logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
     return text, f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s", ""
@@ -28,7 +28,7 @@ def generate_image(prompt, model_key, width, height, steps):
     if not prompt.strip():
         return None, "Please enter a prompt."
     config = manager.get_image_model_config(model_key)
-    image, elapsed = image_engine.generate(prompt, config["id"], int(width), int(height), int(steps))
+    image, elapsed = image_engine.generate(prompt, config["model_id"], int(width), int(height), int(steps))
     logger.log("image", prompt, "image_generated", model_key, {}, {"time": elapsed})
     if image:
         return image, f"Time: {elapsed:.2f}s"
@@ -102,6 +102,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             i_btn.click(generate_image, [i_prompt, i_model, i_width, i_height, i_steps], [i_out, i_meta])
 
         with gr.Tab("🔀 Generate Both"):
+            b_top_p_state = gr.State(0.9)
             with gr.Row():
                 with gr.Column(scale=2):
                     b_prompt = gr.Textbox(label="Prompt", placeholder="Describe something to write about AND generate an image of...", lines=4)
@@ -123,8 +124,8 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                     b_iout = gr.Image(label="Generated Image", type="pil")
                     b_imeta = gr.Textbox(label="Image Info", interactive=False)
             b_btn.click(generate_both,
-                [b_prompt, b_tmodel, b_imodel, b_profile, b_tokens, b_temp, gr.State(0.9), b_width, b_height, b_steps],
-                [b_tout, b_tmeta, b_iout, b_imeta])
+                inputs=[b_prompt, b_tmodel, b_imodel, b_profile, b_tokens, b_temp, b_top_p_state, b_width, b_height, b_steps],
+                outputs=[b_tout, b_tmeta, b_iout, b_imeta])
 
         with gr.Tab("🗂️ Model Manager"):
             gr.Markdown("### Available Models & Configurations")
@@ -153,4 +154,5 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             export_btn.click(export_history, [], [export_file])
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
+    port = int(os.environ.get("PORT", 10000))
+    demo.launch(server_name="0.0.0.0", server_port=port)
