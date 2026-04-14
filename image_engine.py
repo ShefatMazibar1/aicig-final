@@ -22,6 +22,8 @@ class ImageEngine:
 
     def __init__(self, hf_token: Optional[str] = None):
         self.token = hf_token or os.environ.get("HF_TOKEN", "")
+        if not self.token:
+            print("WARNING: No HF_TOKEN provided. Image generation will fail.")
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
     def _enhance_prompt(self, prompt: str) -> str:
@@ -47,6 +49,9 @@ class ImageEngine:
         Generate an image from a prompt.
         Returns (PIL Image or None, duration_seconds).
         """
+        if not self.token:
+            return None, 0
+            
         enhanced = self._enhance_prompt(prompt)
         payload = {
             "inputs": enhanced,
@@ -63,6 +68,7 @@ class ImageEngine:
 
         url = HF_API_URL + model_id
         start = time.time()
+        print(f"Generating image with model: {model_id}")
 
         for attempt in range(retries):
             try:
@@ -74,8 +80,10 @@ class ImageEngine:
                 if resp.status_code == 200:
                     try:
                         img = Image.open(io.BytesIO(resp.content))
+                        print(f"Image generated in {duration:.2f}s")
                         return img, duration
-                    except Exception:
+                    except Exception as e:
+                        print(f"Error opening image: {e}")
                         return None, duration
 
                 elif resp.status_code == 503:
@@ -84,17 +92,29 @@ class ImageEngine:
                         wait = resp.json().get("estimated_time", 20)
                     except Exception:
                         pass
+                    print(f"Model loading, waiting {wait}s... (attempt {attempt+1}/{retries})")
                     time.sleep(min(wait, 40))
                     continue
 
+                elif resp.status_code == 401:
+                    print(f"Invalid token error")
+                    return None, time.time() - start
+
+                elif resp.status_code == 429:
+                    print(f"Rate limit error")
+                    return None, time.time() - start
+
                 else:
+                    print(f"Error status: {resp.status_code}, {resp.text[:200]}")
                     return None, time.time() - start
 
             except requests.exceptions.Timeout:
+                print(f"Timeout on attempt {attempt+1}")
                 if attempt == retries - 1:
                     return None, time.time() - start
                 time.sleep(10)
-            except Exception:
+            except Exception as e:
+                print(f"Exception: {e}")
                 return None, time.time() - start
 
         return None, time.time() - start
