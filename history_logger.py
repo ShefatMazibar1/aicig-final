@@ -37,36 +37,41 @@ class HistoryLogger:
 
     def log(
         self,
+        generation_type: str,
         prompt: str,
-        generation_type: str,  # "text", "image", "combined"
-        text_output: Optional[str],
-        image_generated: bool,
-        text_model: str,
-        image_model: str,
+        output: str,
+        model: str,
         params: dict,
-        duration_seconds: float,
-        bleu_score: Optional[float] = None,
+        metrics: dict,
     ) -> str:
         """Log a generation event and return its entry ID."""
         entry_id = f"gen_{len(self.history)+1:04d}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         entry = {
             "id": entry_id,
             "timestamp": datetime.now().isoformat(),
-            "prompt": prompt,
             "type": generation_type,
-            "text_output": text_output,
-            "image_generated": image_generated,
-            "text_model": text_model,
-            "image_model": image_model,
+            "prompt": prompt,
+            "output": output,
+            "model": model,
             "params": params,
-            "duration_seconds": round(duration_seconds, 2),
-            "bleu_score": bleu_score,
+            "metrics": metrics,
             "user_rating": None,
-            "user_feedback": None,
         }
         self.history.append(entry)
         self._save()
         return entry_id
+
+    def get_history(self, n: int = 20) -> list:
+        """Get last n history entries."""
+        return self.history[-n:] if self.history else []
+
+    def rate_last(self, rating: int) -> bool:
+        """Rate the most recent entry."""
+        if self.history:
+            self.history[-1]["user_rating"] = rating
+            self._save()
+            return True
+        return False
 
     def rate(self, entry_id: str, rating: int, feedback: str = "") -> bool:
         """Add a user rating (1-5) to a logged entry."""
@@ -91,7 +96,7 @@ class HistoryLogger:
         type_counts = {}
         for e in self.history:
             type_counts[e["type"]] = type_counts.get(e["type"], 0) + 1
-        durations = [e["duration_seconds"] for e in self.history if e.get("duration_seconds")]
+        durations = [e["metrics"].get("time", 0) for e in self.history if e.get("metrics")]
         return {
             "total": len(self.history),
             "rated_count": len(rated),
@@ -104,19 +109,20 @@ class HistoryLogger:
         """Export history as CSV string."""
         if not self.history:
             return "No history to export."
-        headers = ["id", "timestamp", "type", "prompt", "text_model",
-                   "image_model", "duration_seconds", "bleu_score", "user_rating"]
+        headers = ["id", "timestamp", "type", "prompt", "output", "model",
+                   "duration_seconds", "bleu", "user_rating"]
         lines = [",".join(headers)]
         for e in self.history:
+            metrics = e.get("metrics", {})
             row = [
                 str(e.get("id", "")),
                 str(e.get("timestamp", "")),
                 str(e.get("type", "")),
-                f'"{e.get("prompt","").replace(chr(34), chr(39))}"',
-                str(e.get("text_model", "")),
-                str(e.get("image_model", "")),
-                str(e.get("duration_seconds", "")),
-                str(e.get("bleu_score", "")),
+                f'"{str(e.get("prompt","")).replace(chr(34), chr(39))}"',
+                f'"{str(e.get("output","")).replace(chr(34), chr(39))[:100]}"',
+                str(e.get("model", "")),
+                str(metrics.get("time", "")),
+                str(metrics.get("bleu", "")),
                 str(e.get("user_rating", "")),
             ]
             lines.append(",".join(row))
