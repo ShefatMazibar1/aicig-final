@@ -53,16 +53,22 @@ def generate_image(prompt, model_key, width, height, steps):
             return None, "Error: HF_TOKEN not configured. Please set your Hugging Face token in Render environment variables."
         
         config = manager.get_image_model_config(model_key)
-        image, elapsed = image_engine.generate(prompt, config["model_id"], int(width), int(height), int(steps))
-        
-        logger.log("image", prompt, "image_generated", model_key, {}, {"time": elapsed})
+        image, elapsed, message = image_engine.generate(
+            prompt, config["model_id"], int(width), int(height), int(steps)
+        )
         
         if image:
-            return image, f"Time: {elapsed:.2f}s"
-        return None, f"Image generation failed. Model may be loading or unavailable. Time: {elapsed:.2f}s"
+            logger.log("image", prompt, "image_generated", model_key, {}, {"time": elapsed})
+            return image, f"Generated in {elapsed:.2f}s"
+        else:
+            error_msg = f"Failed: {message}. Time: {elapsed:.2f}s"
+            print(error_msg)
+            return None, error_msg
+            
     except Exception as e:
-        print(f"Image generation error: {e}")
-        return None, f"Error: {str(e)}"
+        error_msg = f"Error: {str(e)}"
+        print(f"Image generation error: {error_msg}")
+        return None, error_msg
 
 def generate_both(prompt, text_model, image_model, profile, max_tokens, temperature, top_p, width, height, steps):
     try:
@@ -108,7 +114,7 @@ try:
 except Exception as e:
     print(f"Error getting model lists: {e}")
     text_models = ["qwen-7b", "llama-8b", "deepseek"]
-    image_models = ["stable-diffusion-v1-5", "dreamshaper", "realistic-vision"]
+    image_models = ["stable-diffusion-v1-5"]
     profiles = ["balanced", "creative", "precise", "fast"]
 
 with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Soft()) as demo:
