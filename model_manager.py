@@ -56,8 +56,14 @@ AVAILABLE_IMAGE_MODELS = {
     "stable-diffusion-v1-5": {
         "model_id": "runwayml/stable-diffusion-v1-5",
         "display_name": "Stable Diffusion v1.5",
-        "description": "Most reliable free model - use this one",
-        "strengths": ["general images", "reliable"]
+        "description": "Fast and reliable via Replicate",
+        "strengths": ["general images", "fast"]
+    },
+    "sdxl-base": {
+        "model_id": "stabilityai/stable-diffusion-xl-base-1.0",
+        "display_name": "Stable Diffusion XL",
+        "description": "Higher quality, slower",
+        "strengths": ["high quality", "detailed"]
     }
 }
 
