@@ -1,26 +1,31 @@
 """
 Image Engine - AICIG Final System
-Handles image generation via Hugging Face Inference API.
-Uses the newer InferenceClient for better reliability.
+Handles image generation via Replicate API (more reliable than HF for images).
 """
 
 import os
-import io
 import time
-from PIL import Image
 from typing import Optional, Tuple
 import requests
 
 
 class ImageEngine:
     """
-    Manages image generation using Hugging Face Inference API.
+    Manages image generation using Replicate API.
+    Replicate has a free tier and more reliable image generation.
     """
 
-    def __init__(self, hf_token: Optional[str] = None):
-        self.token = hf_token or os.environ.get("HF_TOKEN", "")
+    REPLICATE_API_URL = "https://api.replicate.com/v1/predictions"
+
+    def __init__(self, replicate_token: Optional[str] = None):
+        # Try REPLICATE_TOKEN first, then HF_TOKEN as fallback
+        self.token = replicate_token or os.environ.get("REPLICATE_TOKEN") or os.environ.get("HF_TOKEN", "")
         if not self.token:
-            print("WARNING: No HF_TOKEN provided. Image generation will fail.")
+            print("WARNING: No REPLICATE_TOKEN or HF_TOKEN provided. Image generation will fail.")
+        self.headers = {
+            "Authorization": f"Token {self.token}",
+            "Content-Type": "application/json"
+        }
 
     def _enhance_prompt(self, prompt: str) -> str:
         """Add quality-boosting suffix if not already detailed."""
@@ -40,111 +45,108 @@ class ImageEngine:
         guidance_scale: float = 7.5,
         negative_prompt: str = "blurry, low quality, distorted, ugly, bad anatomy",
         retries: int = 3,
-    ) -> Tuple[Optional[Image.Image], float, str]:
+    ) -> Tuple[Optional[any], float, str]:
         """
-        Generate an image from a prompt using Hugging Face InferenceClient.
-        Returns (PIL Image or None, duration_seconds, status_message).
+        Generate an image using Replicate API.
+        Returns (image URL or None, duration_seconds, status_message).
         """
         if not self.token:
-            return None, 0, "Error: HF_TOKEN not configured"
+            return None, 0, "Error: REPLICATE_TOKEN not configured. Get free token at replicate.com/account/api-tokens"
         
         enhanced = self._enhance_prompt(prompt)
         start = time.time()
         
+        # Map model IDs to Replicate models
+        replicate_models = {
+            "runwayml/stable-diffusion-v1-5": "stability-ai/stable-diffusion:ac732df83cea7fff18b8472768c88ad041fa750ff7682a21a5835157c3e9f2a",
+            "stabilityai/stable-diffusion-2-1": "stability-ai/stable-diffusion-2-1:5c7d4dc6dd3bf575161f47f82a7ee0d9b5f2c5b4b0e8e6b6e6b6e6b6e6b6e6b",  # Placeholder
+            "stabilityai/stable-diffusion-xl-base-1.0": "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+        }
+        
+        # Use mapped model or default to SD v1.5
+        version = replicate_models.get(model_id, replicate_models["runwayml/stable-diffusion-v1-5"])
+        
+        # Create prediction
+        payload = {
+            "version": version,
+            "input": {
+                "prompt": enhanced,
+                "negative_prompt": negative_prompt,
+                "num_inference_steps": min(steps, 50),
+                "guidance_scale": guidance_scale,
+                "width": width,
+                "height": height,
+            }
+        }
+
         try:
-            # Use InferenceClient which handles the API better
-            from huggingface_hub import InferenceClient
+            print(f"Creating Replicate prediction for: {enhanced[:50]}...")
             
-            client = InferenceClient(api_key=self.token)
-            
-            print(f"Using InferenceClient for model: {model_id}")
-            
-            # Generate image using text_to_image
-            # This uses the newer API which is more reliable
-            image = client.text_to_image(
-                enhanced,
-                model=model_id,
-                num_inference_steps=min(steps, 25),  # Cap at 25 for free tier
-                guidance_scale=guidance_scale,
-                negative_prompt=negative_prompt,
+            # Start prediction
+            response = requests.post(
+                self.REPLICATE_API_URL,
+                headers=self.headers,
+                json=payload,
+                timeout=30
             )
             
-            elapsed = time.time() - start
-            print(f"Image generated successfully in {elapsed:.2f}s")
-            return image, elapsed, "Success"
+            if response.status_code != 201:
+                error_text = response.text[:200]
+                print(f"Replicate error {response.status_code}: {error_text}")
+                return None, time.time() - start, f"Replicate API error: {response.status_code}"
+            
+            prediction = response.json()
+            prediction_id = prediction["id"]
+            print(f"Prediction started: {prediction_id}")
+            
+            # Poll for result (max 2 minutes)
+            max_wait = 120
+            poll_interval = 1
+            
+            for _ in range(max_wait):
+                time.sleep(poll_interval)
+                
+                status_response = requests.get(
+                    f"{self.REPLICATE_API_URL}/{prediction_id}",
+                    headers=self.headers,
+                    timeout=10
+                )
+                
+                if status_response.status_code != 200:
+                    continue
+                
+                result = status_response.json()
+                status = result.get("status")
+                
+                if status == "succeeded":
+                    output = result.get("output")
+                    if output:
+                        # Replicate returns a list of URLs, take the first one
+                        if isinstance(output, list) and len(output) > 0:
+                            image_url = output[0]
+                        else:
+                            image_url = output
+                        
+                        elapsed = time.time() - start
+                        print(f"Image generated in {elapsed:.2f}s: {image_url[:50]}...")
+                        return image_url, elapsed, "Success"
+                    else:
+                        return None, time.time() - start, "No output from Replicate"
+                
+                elif status == "failed":
+                    error = result.get("error", "Unknown error")
+                    return None, time.time() - start, f"Replicate generation failed: {error}"
+                
+                elif status == "canceled":
+                    return None, time.time() - start, "Generation was canceled"
+                
+                # Still processing, continue polling
+            
+            # Timeout
+            return None, time.time() - start, "Generation timed out (took too long)"
             
         except Exception as e:
+            elapsed = time.time() - start
             error_msg = str(e)
-            print(f"InferenceClient failed: {error_msg}")
-            
-            # Fallback to direct API call
-            return self._fallback_api_generate(
-                enhanced, model_id, width, height, steps, 
-                guidance_scale, negative_prompt, retries, start
-            )
-
-    def _fallback_api_generate(
-        self, prompt: str, model_id: str, width: int, height: int,
-        steps: int, guidance_scale: float, negative_prompt: str,
-        retries: int, start_time: float
-    ) -> Tuple[Optional[Image.Image], float, str]:
-        """Fallback to direct API if InferenceClient fails."""
-        
-        url = f"https://api-inference.huggingface.co/models/{model_id}"
-        headers = {"Authorization": f"Bearer {self.token}"}
-        
-        # Try minimal payload first
-        payloads = [
-            {"inputs": prompt},
-            {
-                "inputs": prompt,
-                "parameters": {
-                    "num_inference_steps": min(steps, 20),
-                    "guidance_scale": guidance_scale,
-                }
-            }
-        ]
-        
-        for attempt in range(retries):
-            for payload in payloads:
-                try:
-                    print(f"Fallback API attempt {attempt + 1}, payload: {list(payload.keys())}")
-                    
-                    response = requests.post(
-                        url,
-                        headers=headers,
-                        json=payload,
-                        timeout=120
-                    )
-                    
-                    elapsed = time.time() - start_time
-
-                    if response.status_code == 200:
-                        try:
-                            # Try to open as image directly
-                            image = Image.open(io.BytesIO(response.content))
-                            return image, elapsed, "Success (fallback)"
-                        except Exception as e:
-                            print(f"Error opening image: {e}")
-                            continue
-
-                    elif response.status_code == 503:
-                        # Model loading
-                        print(f"Model loading (503), waiting...")
-                        time.sleep(20)
-                        continue
-                        
-                    elif response.status_code == 429:
-                        print(f"Rate limited (429), waiting 10s...")
-                        time.sleep(10)
-                        continue
-                        
-                    else:
-                        print(f"Error {response.status_code}: {response.text[:100]}")
-                        
-                except Exception as e:
-                    print(f"Exception: {e}")
-                    continue
-
-        total_time = time.time() - start_time
-        return None, total_time, "Image generation failed. The Hugging Face free Inference API has strict limits. Consider using Hugging Face Spaces for image generation instead."
+            print(f"Replicate exception: {error_msg}")
+            return None, elapsed, f"Error: {error_msg}"
