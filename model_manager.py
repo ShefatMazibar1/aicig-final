@@ -56,20 +56,8 @@ AVAILABLE_IMAGE_MODELS = {
     "stable-diffusion-v1-5": {
         "model_id": "runwayml/stable-diffusion-v1-5",
         "display_name": "Stable Diffusion v1.5",
-        "description": "Classic SD, reliable and versatile",
-        "strengths": ["general images", "artistic styles", "fast"]
-    },
-    "dreamshaper": {
-        "model_id": "Lykon/dreamshaper-8",
-        "display_name": "DreamShaper 8",
-        "description": "Excellent for artistic and fantasy imagery",
-        "strengths": ["art", "fantasy", "portraits"]
-    },
-    "realistic-vision": {
-        "model_id": "SG161222/Realistic_Vision_V5.1_noVAE",
-        "display_name": "Realistic Vision v5.1",
-        "description": "Photorealistic image generation",
-        "strengths": ["photorealism", "people", "landscapes"]
+        "description": "Most reliable free model - use this one",
+        "strengths": ["general images", "reliable"]
     }
 }
 
