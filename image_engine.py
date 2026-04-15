@@ -1,15 +1,15 @@
 """
 Image Engine - AICIG Final System
 Handles image generation via Hugging Face Inference API.
+Uses the newer InferenceClient for better reliability.
 """
 
 import os
 import io
 import time
-import requests
-import base64
 from PIL import Image
 from typing import Optional, Tuple
+import requests
 
 
 class ImageEngine:
@@ -21,10 +21,6 @@ class ImageEngine:
         self.token = hf_token or os.environ.get("HF_TOKEN", "")
         if not self.token:
             print("WARNING: No HF_TOKEN provided. Image generation will fail.")
-        self.headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json"
-        }
 
     def _enhance_prompt(self, prompt: str) -> str:
         """Add quality-boosting suffix if not already detailed."""
@@ -46,7 +42,7 @@ class ImageEngine:
         retries: int = 3,
     ) -> Tuple[Optional[Image.Image], float, str]:
         """
-        Generate an image from a prompt.
+        Generate an image from a prompt using Hugging Face InferenceClient.
         Returns (PIL Image or None, duration_seconds, status_message).
         """
         if not self.token:
@@ -55,122 +51,100 @@ class ImageEngine:
         enhanced = self._enhance_prompt(prompt)
         start = time.time()
         
-        # Try using the Hugging Face Inference API with binary response
-        url = f"https://api-inference.huggingface.co/models/{model_id}"
+        try:
+            # Use InferenceClient which handles the API better
+            from huggingface_hub import InferenceClient
+            
+            client = InferenceClient(api_key=self.token)
+            
+            print(f"Using InferenceClient for model: {model_id}")
+            
+            # Generate image using text_to_image
+            # This uses the newer API which is more reliable
+            image = client.text_to_image(
+                enhanced,
+                model=model_id,
+                num_inference_steps=min(steps, 25),  # Cap at 25 for free tier
+                guidance_scale=guidance_scale,
+                negative_prompt=negative_prompt,
+            )
+            
+            elapsed = time.time() - start
+            print(f"Image generated successfully in {elapsed:.2f}s")
+            return image, elapsed, "Success"
+            
+        except Exception as e:
+            error_msg = str(e)
+            print(f"InferenceClient failed: {error_msg}")
+            
+            # Fallback to direct API call
+            return self._fallback_api_generate(
+                enhanced, model_id, width, height, steps, 
+                guidance_scale, negative_prompt, retries, start
+            )
+
+    def _fallback_api_generate(
+        self, prompt: str, model_id: str, width: int, height: int,
+        steps: int, guidance_scale: float, negative_prompt: str,
+        retries: int, start_time: float
+    ) -> Tuple[Optional[Image.Image], float, str]:
+        """Fallback to direct API if InferenceClient fails."""
         
-        # Simple payload - just the prompt with basic parameters
-        payload = {
-            "inputs": enhanced,
-            "parameters": {
-                "num_inference_steps": min(steps, 25),  # Cap at 25 for free tier
-                "guidance_scale": guidance_scale,
-                "negative_prompt": negative_prompt,
+        url = f"https://api-inference.huggingface.co/models/{model_id}"
+        headers = {"Authorization": f"Bearer {self.token}"}
+        
+        # Try minimal payload first
+        payloads = [
+            {"inputs": prompt},
+            {
+                "inputs": prompt,
+                "parameters": {
+                    "num_inference_steps": min(steps, 20),
+                    "guidance_scale": guidance_scale,
+                }
             }
-        }
-
+        ]
+        
         for attempt in range(retries):
-            try:
-                print(f"Image generation attempt {attempt + 1}/{retries}...")
-                
-                response = requests.post(
-                    url,
-                    headers=self.headers,
-                    json=payload,
-                    timeout=180  # 3 minute timeout
-                )
-                
-                elapsed = time.time() - start
-
-                # Check if we got an image back
-                if response.status_code == 200:
-                    content_type = response.headers.get('content-type', '')
+            for payload in payloads:
+                try:
+                    print(f"Fallback API attempt {attempt + 1}, payload: {list(payload.keys())}")
                     
-                    # Direct image response
-                    if 'image' in content_type:
+                    response = requests.post(
+                        url,
+                        headers=headers,
+                        json=payload,
+                        timeout=120
+                    )
+                    
+                    elapsed = time.time() - start_time
+
+                    if response.status_code == 200:
                         try:
+                            # Try to open as image directly
                             image = Image.open(io.BytesIO(response.content))
-                            print(f"Image generated successfully in {elapsed:.2f}s")
-                            return image, elapsed, "Success"
+                            return image, elapsed, "Success (fallback)"
                         except Exception as e:
                             print(f"Error opening image: {e}")
-                            return None, elapsed, f"Error opening image: {e}"
-                    
-                    # JSON response with base64 image
-                    try:
-                        data = response.json()
+                            continue
+
+                    elif response.status_code == 503:
+                        # Model loading
+                        print(f"Model loading (503), waiting...")
+                        time.sleep(20)
+                        continue
                         
-                        # Handle different response formats
-                        if isinstance(data, list) and len(data) > 0:
-                            # Format: [{"image": "base64..."}] or just ["base64..."]
-                            img_data = data[0]
-                            if isinstance(img_data, dict) and 'image' in img_data:
-                                img_bytes = base64.b64decode(img_data['image'])
-                            elif isinstance(img_data, str):
-                                img_bytes = base64.b64decode(img_data)
-                            else:
-                                raise ValueError(f"Unexpected response format: {type(img_data)}")
-                                
-                            image = Image.open(io.BytesIO(img_bytes))
-                            return image, elapsed, "Success"
-                            
-                        elif isinstance(data, dict):
-                            # Format: {"image": "base64..."}
-                            if 'image' in data:
-                                img_bytes = base64.b64decode(data['image'])
-                                image = Image.open(io.BytesIO(img_bytes))
-                                return image, elapsed, "Success"
-                                
-                    except Exception as e:
-                        print(f"Error parsing JSON response: {e}")
-                        # Try to open as raw image anyway
-                        try:
-                            image = Image.open(io.BytesIO(response.content))
-                            return image, elapsed, "Success"
-                        except:
-                            pass
-
-                elif response.status_code == 503:
-                    # Model is loading - wait and retry
-                    wait_time = 20
-                    try:
-                        error_data = response.json()
-                        wait_time = error_data.get("estimated_time", 20)
-                    except:
-                        pass
-                    
-                    print(f"Model loading, waiting {wait_time:.0f} seconds...")
-                    time.sleep(min(wait_time, 60))
-                    continue  # Retry
-
-                elif response.status_code == 429:
-                    # Rate limited
-                    print(f"Rate limited, waiting 10 seconds...")
-                    time.sleep(10)
+                    elif response.status_code == 429:
+                        print(f"Rate limited (429), waiting 10s...")
+                        time.sleep(10)
+                        continue
+                        
+                    else:
+                        print(f"Error {response.status_code}: {response.text[:100]}")
+                        
+                except Exception as e:
+                    print(f"Exception: {e}")
                     continue
 
-                else:
-                    # Other error
-                    error_text = response.text[:200]
-                    print(f"Error {response.status_code}: {error_text}")
-                    
-                    # If payload error, try simpler version
-                    if response.status_code == 422 and attempt == 0:
-                        print("Trying simpler payload...")
-                        payload = {"inputs": enhanced}
-                        continue
-
-            except requests.exceptions.Timeout:
-                print(f"Request timeout on attempt {attempt + 1}")
-                if attempt < retries - 1:
-                    time.sleep(5)
-                continue
-                
-            except Exception as e:
-                print(f"Exception on attempt {attempt + 1}: {e}")
-                if attempt < retries - 1:
-                    time.sleep(2)
-                continue
-
-        # All retries failed
-        total_time = time.time() - start
-        return None, total_time, "Image generation failed after all retries. The model may be unavailable on the free Inference API tier. Try using 'stable-diffusion-v1-5' model or check your HF_TOKEN permissions."
+        total_time = time.time() - start_time
+        return None, total_time, "Image generation failed. The Hugging Face free Inference API has strict limits. Consider using Hugging Face Spaces for image generation instead."
