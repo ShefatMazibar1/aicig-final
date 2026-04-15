@@ -6,15 +6,19 @@ from image_engine import ImageEngine
 from history_logger import HistoryLogger
 from evaluation import Evaluator
 
-# Check HF_TOKEN
+# Check tokens
 hf_token = os.environ.get("HF_TOKEN", "")
+replicate_token = os.environ.get("REPLICATE_TOKEN", "")
+
 if not hf_token:
-    print("WARNING: HF_TOKEN not set! Please set it in Render environment variables.")
+    print("WARNING: HF_TOKEN not set! Text generation will fail.")
+if not replicate_token:
+    print("WARNING: REPLICATE_TOKEN not set! Image generation will fail. Get free token at replicate.com/account/api-tokens")
 
 try:
     manager = ModelManager()
     text_engine = TextEngine(hf_token)
-    image_engine = ImageEngine(hf_token)
+    image_engine = ImageEngine(replicate_token or hf_token)
     logger = HistoryLogger()
     evaluator = Evaluator()
     print("All engines initialized successfully")
@@ -27,7 +31,7 @@ def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_
         if not prompt.strip():
             return "Please enter a prompt.", "", ""
         if not hf_token:
-            return "Error: HF_TOKEN not configured. Please set your Hugging Face token in Render environment variables.", "", ""
+            return "Error: HF_TOKEN not configured. Please set your Hugging Face token.", "", ""
         
         config = manager.get_model_config(model_key)
         params = manager.get_profile(profile_name)
@@ -49,17 +53,18 @@ def generate_image(prompt, model_key, width, height, steps):
     try:
         if not prompt.strip():
             return None, "Please enter a prompt."
-        if not hf_token:
-            return None, "Error: HF_TOKEN not configured. Please set your Hugging Face token in Render environment variables."
+        if not replicate_token and not hf_token:
+            return None, "Error: REPLICATE_TOKEN not configured. Get free token at replicate.com/account/api-tokens"
         
         config = manager.get_image_model_config(model_key)
-        image, elapsed, message = image_engine.generate(
+        image_url, elapsed, message = image_engine.generate(
             prompt, config["model_id"], int(width), int(height), int(steps)
         )
         
-        if image:
-            logger.log("image", prompt, "image_generated", model_key, {}, {"time": elapsed})
-            return image, f"Generated in {elapsed:.2f}s"
+        if image_url:
+            logger.log("image", prompt, image_url, model_key, {}, {"time": elapsed})
+            # Return the URL as a string - Gradio will display it as image
+            return image_url, f"Generated in {elapsed:.2f}s - Click to view full size"
         else:
             error_msg = f"Failed: {message}. Time: {elapsed:.2f}s"
             print(error_msg)
@@ -114,7 +119,7 @@ try:
 except Exception as e:
     print(f"Error getting model lists: {e}")
     text_models = ["qwen-7b", "llama-8b", "deepseek"]
-    image_models = ["stable-diffusion-v1-5"]
+    image_models = ["stable-diffusion-v1-5", "sdxl-base"]
     profiles = ["balanced", "creative", "precise", "fast"]
 
 with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Soft()) as demo:
@@ -149,12 +154,13 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                     i_prompt = gr.Textbox(label="Image Prompt", placeholder="A futuristic city at sunset...", lines=4)
                     i_model = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "stable-diffusion-v1-5", label="Image Model")
                     with gr.Row():
-                        i_width = gr.Slider(256, 768, value=512, step=64, label="Width")
-                        i_height = gr.Slider(256, 768, value=512, step=64, label="Height")
+                        i_width = gr.Slider(256, 1024, value=512, step=64, label="Width")
+                        i_height = gr.Slider(256, 1024, value=512, step=64, label="Height")
                         i_steps = gr.Slider(10, 50, value=20, step=5, label="Steps")
                     i_btn = gr.Button("Generate Image", variant="primary")
                 with gr.Column(scale=3):
-                    i_out = gr.Image(label="Generated Image", type="pil")
+                    # Use HTML component to display image from URL
+                    i_out = gr.Image(label="Generated Image", type="filepath")
                     i_meta = gr.Textbox(label="Info", interactive=False)
             i_btn.click(generate_image, [i_prompt, i_model, i_width, i_height, i_steps], [i_out, i_meta])
 
@@ -171,14 +177,14 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                         b_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         b_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
                     with gr.Row():
-                        b_width = gr.Slider(256, 768, value=512, step=64, label="Width")
-                        b_height = gr.Slider(256, 768, value=512, step=64, label="Height")
+                        b_width = gr.Slider(256, 1024, value=512, step=64, label="Width")
+                        b_height = gr.Slider(256, 1024, value=512, step=64, label="Height")
                         b_steps = gr.Slider(10, 50, value=20, step=5, label="Steps")
                     b_btn = gr.Button("Generate Both", variant="primary", size="lg")
                 with gr.Column(scale=3):
                     b_tout = gr.Textbox(label="Generated Text", lines=8)
                     b_tmeta = gr.Textbox(label="Text Metrics", interactive=False)
-                    b_iout = gr.Image(label="Generated Image", type="pil")
+                    b_iout = gr.Image(label="Generated Image", type="filepath")
                     b_imeta = gr.Textbox(label="Image Info", interactive=False)
             b_btn.click(generate_both,
                 inputs=[b_prompt, b_tmodel, b_imodel, b_profile, b_tokens, b_temp, b_top_p_state, b_width, b_height, b_steps],
