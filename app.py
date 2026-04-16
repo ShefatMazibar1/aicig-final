@@ -220,10 +220,12 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             export_btn.click(export_history, [], [export_file])
 
 if __name__ == "__main__":
+    import uvicorn
+    from gradio.routes import App
+
     port = int(os.environ.get("PORT", 10000))
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=port,
-        show_error=True,
-        quiet=False,
-    )
+
+    # Mount Gradio onto a bare ASGI app without triggering api_info
+    gradio_app = App.create_app(demo)
+
+    uvicorn.run(gradio_app, host="0.0.0.0", port=port, log_level="info")
