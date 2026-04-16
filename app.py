@@ -13,7 +13,7 @@ replicate_token = os.environ.get("REPLICATE_TOKEN", "")
 if not hf_token:
     print("WARNING: HF_TOKEN not set! Text generation will fail.")
 if not replicate_token:
-    print("WARNING: REPLICATE_TOKEN not set! Image generation will fail. Get free token at replicate.com/account/api-tokens")
+    print("WARNING: REPLICATE_TOKEN not set! Image generation will fail.")
 
 try:
     manager = ModelManager()
@@ -26,22 +26,23 @@ except Exception as e:
     print(f"Error initializing engines: {e}")
     raise
 
+
 def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_p):
     try:
         if not prompt.strip():
             return "Please enter a prompt.", "", ""
         if not hf_token:
-            return "Error: HF_TOKEN not configured. Please set your Hugging Face token.", "", ""
-        
+            return "Error: HF_TOKEN not configured.", "", ""
+
         config = manager.get_model_config(model_key)
         params = manager.get_profile(profile_name)
         params.update({"max_tokens": int(max_tokens), "temperature": temperature, "top_p": top_p})
-        
+
         text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
-        
+
         if text.startswith("Error:"):
             return text, "", ""
-        
+
         bleu = evaluator.bleu_score(prompt, text)
         logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
         return text, f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s", ""
@@ -49,31 +50,29 @@ def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_
         print(f"Text generation error: {e}")
         return f"Error: {str(e)}", "", ""
 
+
 def generate_image(prompt, model_key, width, height, steps):
     try:
         if not prompt.strip():
             return None, "Please enter a prompt."
         if not replicate_token and not hf_token:
-            return None, "Error: REPLICATE_TOKEN not configured. Get free token at replicate.com/account/api-tokens"
-        
+            return None, "Error: No token configured."
+
         config = manager.get_image_model_config(model_key)
-        image_url, elapsed, message = image_engine.generate(
+        image, elapsed, message = image_engine.generate(
             prompt, config["model_id"], int(width), int(height), int(steps)
         )
-        
-        if image_url:
-            logger.log("image", prompt, image_url, model_key, {}, {"time": elapsed})
-            # Return the URL as a string - Gradio will display it as image
-            return image_url, f"Generated in {elapsed:.2f}s - Click to view full size"
+
+        if image is not None:
+            logger.log("image", prompt, "generated", model_key, {}, {"time": elapsed})
+            return image, f"Generated in {elapsed:.2f}s"
         else:
-            error_msg = f"Failed: {message}. Time: {elapsed:.2f}s"
-            print(error_msg)
-            return None, error_msg
-            
+            return None, f"Failed: {message}"
+
     except Exception as e:
-        error_msg = f"Error: {str(e)}"
-        print(f"Image generation error: {error_msg}")
-        return None, error_msg
+        print(f"Image generation error: {e}")
+        return None, f"Error: {str(e)}"
+
 
 def generate_both(prompt, text_model, image_model, profile, max_tokens, temperature, top_p, width, height, steps):
     try:
@@ -81,8 +80,8 @@ def generate_both(prompt, text_model, image_model, profile, max_tokens, temperat
         image_out, image_meta = generate_image(prompt, image_model, width, height, steps)
         return text_out, text_meta, image_out, image_meta
     except Exception as e:
-        print(f"Generate both error: {e}")
         return f"Error: {str(e)}", "", None, ""
+
 
 def get_history():
     try:
@@ -96,12 +95,13 @@ def get_history():
     except Exception as e:
         return f"Error loading history: {e}"
 
+
 def export_history():
     try:
-        path = logger.export_csv()
-        return path
+        return logger.export_csv()
     except Exception as e:
         return f"Error: {e}"
+
 
 def rate_last(rating):
     try:
@@ -110,12 +110,12 @@ def rate_last(rating):
     except Exception as e:
         return f"Error: {e}"
 
+
 # Get model lists safely
 try:
     text_models = manager.get_text_model_keys()
     image_models = manager.get_image_model_keys()
     profiles = manager.get_profile_names()
-    print(f"Available models: text={text_models}, image={image_models}, profiles={profiles}")
 except Exception as e:
     print(f"Error getting model lists: {e}")
     text_models = ["qwen-7b", "llama-8b", "deepseek"]
@@ -131,8 +131,8 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                 with gr.Column(scale=2):
                     t_prompt = gr.Textbox(label="Prompt", placeholder="Write a blog post about...", lines=4)
                     with gr.Row():
-                        t_model = gr.Dropdown(choices=text_models, value=text_models[0] if text_models else "qwen-7b", label="Model")
-                        t_profile = gr.Dropdown(choices=profiles, value=profiles[0] if profiles else "balanced", label="Profile")
+                        t_model = gr.Dropdown(choices=text_models, value=text_models[0], label="Model")
+                        t_profile = gr.Dropdown(choices=profiles, value=profiles[0], label="Profile")
                     with gr.Row():
                         t_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         t_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
@@ -152,15 +152,14 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             with gr.Row():
                 with gr.Column(scale=2):
                     i_prompt = gr.Textbox(label="Image Prompt", placeholder="A futuristic city at sunset...", lines=4)
-                    i_model = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "stable-diffusion-v1-5", label="Image Model")
+                    i_model = gr.Dropdown(choices=image_models, value=image_models[0], label="Image Model")
                     with gr.Row():
                         i_width = gr.Slider(256, 1024, value=512, step=64, label="Width")
                         i_height = gr.Slider(256, 1024, value=512, step=64, label="Height")
                         i_steps = gr.Slider(10, 50, value=20, step=5, label="Steps")
                     i_btn = gr.Button("Generate Image", variant="primary")
                 with gr.Column(scale=3):
-                    # Use HTML component to display image from URL
-                    i_out = gr.Image(label="Generated Image", type="filepath")
+                    i_out = gr.Image(label="Generated Image", type="pil")  # pil not filepath
                     i_meta = gr.Textbox(label="Info", interactive=False)
             i_btn.click(generate_image, [i_prompt, i_model, i_width, i_height, i_steps], [i_out, i_meta])
 
@@ -168,11 +167,11 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             b_top_p_state = gr.State(0.9)
             with gr.Row():
                 with gr.Column(scale=2):
-                    b_prompt = gr.Textbox(label="Prompt", placeholder="Describe something to write about AND generate an image of...", lines=4)
+                    b_prompt = gr.Textbox(label="Prompt", placeholder="Describe something...", lines=4)
                     with gr.Row():
-                        b_tmodel = gr.Dropdown(choices=text_models, value=text_models[0] if text_models else "qwen-7b", label="Text Model")
-                        b_imodel = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "stable-diffusion-v1-5", label="Image Model")
-                    b_profile = gr.Dropdown(choices=profiles, value=profiles[0] if profiles else "balanced", label="Profile")
+                        b_tmodel = gr.Dropdown(choices=text_models, value=text_models[0], label="Text Model")
+                        b_imodel = gr.Dropdown(choices=image_models, value=image_models[0], label="Image Model")
+                    b_profile = gr.Dropdown(choices=profiles, value=profiles[0], label="Profile")
                     with gr.Row():
                         b_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         b_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
@@ -184,7 +183,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                 with gr.Column(scale=3):
                     b_tout = gr.Textbox(label="Generated Text", lines=8)
                     b_tmeta = gr.Textbox(label="Text Metrics", interactive=False)
-                    b_iout = gr.Image(label="Generated Image", type="filepath")
+                    b_iout = gr.Image(label="Generated Image", type="pil")  # pil not filepath
                     b_imeta = gr.Textbox(label="Image Info", interactive=False)
             b_btn.click(generate_both,
                 inputs=[b_prompt, b_tmodel, b_imodel, b_profile, b_tokens, b_temp, b_top_p_state, b_width, b_height, b_steps],
@@ -220,13 +219,5 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             export_btn.click(export_history, [], [export_file])
 
 if __name__ == "__main__":
-    import uvicorn
-    from fastapi import FastAPI
-    from gradio.routes import mount_gradio_app
-    
     port = int(os.environ.get("PORT", 10000))
-    
-    app = FastAPI()
-    app = mount_gradio_app(app, demo, path="/")
-    
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    demo.launch(server_name="0.0.0.0", server_port=port)
