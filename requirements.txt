@@ -7,4 +7,3 @@ transformers>=4.30.0
 diffusers>=0.25.0
 accelerate>=0.20.0
 torchvision>=0.15.0
-pyaudioop>=0.1.0  # <-- ONLY for Render (Python 3.14)
