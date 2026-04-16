@@ -226,5 +226,6 @@ if __name__ == "__main__":
         server_port=port,
         share=False,
         show_api=False,
-        show_error=True
+        inbrowser=False,
+        prevent_thread_lock=True
     )
