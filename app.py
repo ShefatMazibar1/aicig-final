@@ -220,12 +220,13 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             export_btn.click(export_history, [], [export_file])
 
 if __name__ == "__main__":
+    import uvicorn
+    from fastapi import FastAPI
+    from gradio.routes import mount_gradio_app
+    
     port = int(os.environ.get("PORT", 10000))
-    demo.launch(
-        server_name="0.0.0.0", 
-        server_port=port,
-        share=False,
-        show_api=False,
-        inbrowser=False,
-        prevent_thread_lock=True
-    )
+    
+    app = FastAPI()
+    app = mount_gradio_app(app, demo, path="/")
+    
+    uvicorn.run(app, host="0.0.0.0", port=port)
