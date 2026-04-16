@@ -7,3 +7,4 @@ transformers>=4.30.0
 diffusers>=0.25.0
 accelerate>=0.20.0
 torchvision>=0.15.0
+audioop-lts>=0.1.0  # <-- ADD THIS for Python 3.13+ compatibility
