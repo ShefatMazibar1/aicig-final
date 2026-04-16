@@ -3,11 +3,10 @@ services:
     name: aicig-final
     runtime: python
     runtimeVersion: 3.11.0
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python patch_gradio.py
     startCommand: python app.py
     envVars:
       - key: HF_TOKEN
         sync: false
       - key: REPLICATE_TOKEN
         sync: false
- 
