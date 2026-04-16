@@ -1,5 +1,18 @@
 import os
 import gradio as gr
+
+# Patch gradio_client bug: "argument of type bool is not iterable"
+try:
+    import gradio_client.utils as _gcu
+    _orig = _gcu.get_type
+    def _safe_get_type(schema):
+        if not isinstance(schema, dict):
+            return "Any"
+        return _orig(schema)
+    _gcu.get_type = _safe_get_type
+except Exception:
+    pass
+
 from model_manager import ModelManager
 from text_engine import TextEngine
 from image_engine import ImageEngine
@@ -220,4 +233,9 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port,
+        share=False,
+        show_error=True,
+    )
