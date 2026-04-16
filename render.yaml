@@ -2,7 +2,7 @@ services:
   - type: web
     name: aicig-final
     runtime: python
-    runtimeVersion: 3.11.0  # <-- ADD THIS (not env var)
+    runtimeVersion: 3.11.0
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
     envVars:
@@ -10,3 +10,4 @@ services:
         sync: false
       - key: REPLICATE_TOKEN
         sync: false
+ 
