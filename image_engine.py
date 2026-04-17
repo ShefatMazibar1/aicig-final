@@ -1,104 +1,44 @@
 """
 Image Engine - AICIG Final System
-Calls Hugging Face Space for image generation (reliable free CPU).
+Uses Pollinations.ai - completely free, no API key needed.
 """
-
-import os
 import time
-from typing import Optional, Tuple
 import requests
 from PIL import Image
 import io
-import base64
 
 
 class ImageEngine:
-    """
-    Uses Hugging Face Space for image generation.
-    Space URL: https://shef370-ai-content-generator.hf.space
-    """
-    
-    # Your HF Space URL
-    HF_SPACE_URL = "https://shef370-ai-content-generator.hf.space"
+    def __init__(self, token=None):
+        pass  # No token needed
 
-    def __init__(self, hf_token: Optional[str] = None):
-        self.token = hf_token or os.environ.get("HF_TOKEN", "")
-
-    def _enhance_prompt(self, prompt: str) -> str:
-        quality_keywords = ["detailed", "4k", "high quality", "realistic",
-                           "digital art", "oil painting", "photorealistic"]
-        if not any(k in prompt.lower() for k in quality_keywords):
-            return prompt + ", highly detailed, high quality, sharp focus"
-        return prompt
-
-    def generate(
-        self,
-        prompt: str,
-        model_id: str,  # Not used but kept for compatibility
-        width: int = 512,
-        height: int = 512,
-        steps: int = 25,
-        guidance_scale: float = 7.5,
-        negative_prompt: str = "blurry, low quality, distorted, ugly, bad anatomy",
-        retries: int = 2,
-    ) -> Tuple[Optional[Image.Image], float, str]:
-        """
-        Call HF Space API for image generation.
-        """
-        enhanced = self._enhance_prompt(prompt)
+    def generate(self, prompt, model_id=None, width=512, height=512, steps=20,
+                 guidance_scale=7.5, negative_prompt="blurry, low quality", retries=2):
         start = time.time()
-        
-        # HF Space Gradio API endpoint
-        api_url = f"{self.HF_SPACE_URL}/api/predict"
-        
-        payload = {
-            "fn_index": 0,  # First function in your Gradio app
-            "data": [enhanced, width, height, steps],
-            "session_hash": "aicig_session"
-        }
-
         try:
-            print(f"Calling HF Space: {api_url}")
+            enhanced = prompt + ", highly detailed, high quality, sharp focus"
             
-            response = requests.post(
-                api_url,
-                json=payload,
-                timeout=300  # 5 minutes - CPU generation takes time!
+            # Clean prompt for URL
+            url_prompt = requests.utils.quote(enhanced)
+            
+            url = (
+                f"https://image.pollinations.ai/prompt/{url_prompt}"
+                f"?width={width}&height={height}&seed=42&nologo=true&enhance=true"
             )
-            
+
+            print(f"Calling Pollinations: {url[:80]}...")
+
+            resp = requests.get(url, timeout=60)
             elapsed = time.time() - start
 
-            if response.status_code == 200:
-                result = response.json()
-                
-                # Gradio returns data in 'data' field
-                if 'data' in result and len(result['data']) >= 2:
-                    image_data = result['data'][0]
-                    info = result['data'][1]
-                    
-                    if isinstance(image_data, str):
-                        # Base64 encoded image
-                        if image_data.startswith('data:image'):
-                            # Remove data URL prefix
-                            image_data = image_data.split(',')[1]
-                        
-                        img_bytes = base64.b64decode(image_data)
-                        image = Image.open(io.BytesIO(img_bytes))
-                        return image, elapsed, f"Success: {info}"
-                    
-                    elif image_data is None:
-                        # Error in generation
-                        return None, elapsed, f"HF Space error: {info}"
-                
-                return None, elapsed, "Unexpected response format from HF Space"
-
+            if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image"):
+                image = Image.open(io.BytesIO(resp.content))
+                print(f"Image generated in {elapsed:.1f}s")
+                return image, elapsed, "Success"
             else:
-                error_text = response.text[:200]
-                print(f"HF Space error {response.status_code}: {error_text}")
-                return None, elapsed, f"HF Space API error: {response.status_code}"
+                return None, elapsed, f"Error {resp.status_code}: {resp.text[:100]}"
 
-        except requests.exceptions.Timeout:
-            return None, time.time() - start, "HF Space timeout (generation took too long)"
-            
+        except requests.Timeout:
+            return None, time.time() - start, "Timeout - try again"
         except Exception as e:
-            return None, time.time() - start, f"HF Space exception: {str(e)}"
+            return None, time.time() - start, f"Error: {str(e)}"
