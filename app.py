@@ -15,20 +15,54 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 USERS_FILE = "users.json"
 
 def load_users():
+    # Try file first
     if os.path.exists(USERS_FILE):
         try:
             with open(USERS_FILE) as f:
                 return json.load(f)
         except:
             pass
+    # Try environment variable as backup (survives redeploys on Render)
+    env_users = os.environ.get("USERS_DATA", "")
+    if env_users:
+        try:
+            return json.loads(env_users)
+        except:
+            pass
     return {}
 
 def save_users(users):
+    # Save to file
     try:
         with open(USERS_FILE, "w") as f:
             json.dump(users, f, indent=2)
     except:
         pass
+    # Also save to a persistent backup file in /tmp which survives longer
+    try:
+        with open("/tmp/aicig_users.json", "w") as f:
+            json.dump(users, f, indent=2)
+    except:
+        pass
+
+def load_users_all():
+    users = {}
+    # Load from all sources and merge
+    for path in [USERS_FILE, "/tmp/aicig_users.json"]:
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                    users.update(data)
+            except:
+                pass
+    env_users = os.environ.get("USERS_DATA", "")
+    if env_users:
+        try:
+            users.update(json.loads(env_users))
+        except:
+            pass
+    return users
 
 try:
     from model_manager import ModelManager
@@ -170,6 +204,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;ali
 .fc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#9333ea40,transparent);opacity:0;transition:opacity .3s}
 .fc:hover{background:#07071a}.fc:hover::before{opacity:1}
 .fi{width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:14px}
+.feat-icon-wrap{width:48px;height:48px;margin-bottom:16px;position:relative}
+.feat-icon-wrap svg{filter:drop-shadow(0 0 8px var(--ic,#9333ea));transition:filter .3s}
+.fc:hover .feat-icon-wrap svg{filter:drop-shadow(0 0 16px var(--ic,#9333ea)) drop-shadow(0 0 4px var(--ic,#9333ea))}
 .ft{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;color:#d97706}
 .fd{font-size:13px;color:#6b7280;line-height:1.65}
 .demo-section{position:relative;z-index:1;padding:80px 48px;max-width:1100px;margin:0 auto}
@@ -293,12 +330,155 @@ footer{position:relative;z-index:1;border-top:1px solid #9333ea15;padding:32px 4
   <div class="sec-h">The Full Arsenal</div>
   <div class="sec-p">Every tool you need to generate, evaluate, and track AI content — all in one platform, completely free.</div>
   <div class="feat-grid">
-    <div class="fc"><div class="fi" style="background:#9333ea15;border:1px solid #9333ea30">✍️</div><div class="ft">Text Generation</div><div class="fd">Articles, blogs and summaries with Llama 3.1 via Groq — lightning fast responses on free tier.</div></div>
-    <div class="fc"><div class="fi" style="background:#d9770615;border:1px solid #d9770630">🖼️</div><div class="ft">Image Synthesis</div><div class="fd">Stunning AI images from any prompt via Pollinations.ai — completely free, unlimited generations.</div></div>
-    <div class="fc"><div class="fi" style="background:#06b6d415;border:1px solid #06b6d430">⚡</div><div class="ft">Generate Both</div><div class="fd">Run text and image generation simultaneously from a single prompt — parallel AI power.</div></div>
-    <div class="fc"><div class="fi" style="background:#10b98115;border:1px solid #10b98130">📊</div><div class="ft">BLEU Scoring</div><div class="fd">Automatic BLEU-4 evaluation on every output — measure quality and track improvement over time.</div></div>
-    <div class="fc"><div class="fi" style="background:#f59e0b15;border:1px solid #f59e0b30">🎛️</div><div class="ft">Full Control</div><div class="fd">Tune temperature, tokens, profiles. Balanced, creative, precise, or fast — you decide.</div></div>
-    <div class="fc"><div class="fi" style="background:#ec489915;border:1px solid #ec489930">📜</div><div class="ft">History & Analytics</div><div class="fd">Every generation logged with timestamps, metrics, and model info. Full personal session history.</div></div>
+    <div class="fc">
+      <div class="feat-icon-wrap" style="--ic:#9333ea">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="8" fill="#9333ea15"/>
+          <rect x="1" y="1" width="46" height="46" rx="7" stroke="#9333ea" stroke-width="1" stroke-opacity=".3"/>
+          <rect x="12" y="14" width="24" height="3" rx="1.5" fill="#9333ea" opacity=".9">
+            <animate attributeName="width" values="24;20;24" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values=".9;.4;.9" dur="3s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="12" y="20" width="18" height="3" rx="1.5" fill="#d97706" opacity=".7">
+            <animate attributeName="width" values="18;22;18" dur="2.5s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values=".7;1;.7" dur="2.5s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="12" y="26" width="21" height="3" rx="1.5" fill="#9333ea" opacity=".6">
+            <animate attributeName="width" values="21;16;21" dur="3.5s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="12" y="32" width="14" height="3" rx="1.5" fill="#d97706" opacity=".5">
+            <animate attributeName="width" values="14;19;14" dur="2s" repeatCount="indefinite"/>
+          </rect>
+          <circle cx="36" cy="33" r="1.5" fill="#9333ea">
+            <animate attributeName="opacity" values="1;0;1" dur=".8s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      </div>
+      <div class="ft">Text Generation</div>
+      <div class="fd">Articles, blogs and summaries with Llama 3.1 via Groq — lightning fast responses on free tier.</div>
+    </div>
+    <div class="fc">
+      <div class="feat-icon-wrap" style="--ic:#d97706">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="8" fill="#d9770615"/>
+          <rect x="1" y="1" width="46" height="46" rx="7" stroke="#d97706" stroke-width="1" stroke-opacity=".3"/>
+          <rect x="10" y="10" width="28" height="20" rx="3" stroke="#d97706" stroke-width="1.2" fill="none" opacity=".6"/>
+          <circle cx="16" cy="17" r="3" fill="#d97706" opacity=".8">
+            <animate attributeName="r" values="3;2.5;3" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <polyline points="10,30 18,22 24,26 30,19 38,30" stroke="#9333ea" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <animate attributeName="stroke-dasharray" values="0,100;60,100" dur="2s" fill="freeze"/>
+          </polyline>
+          <line x1="10" y1="38" x2="38" y2="38" stroke="#d97706" stroke-width="1" opacity=".3"/>
+          <line x1="10" y1="34" x2="38" y2="34" stroke="#d97706" stroke-width="1" opacity=".3"/>
+          <rect x="10" y="30" width="28" height="8" rx="2" fill="#d97706" fill-opacity=".06"/>
+        </svg>
+      </div>
+      <div class="ft">Image Synthesis</div>
+      <div class="fd">Stunning AI images from any prompt via Pollinations.ai — completely free, unlimited generations.</div>
+    </div>
+    <div class="fc">
+      <div class="feat-icon-wrap" style="--ic:#06b6d4">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="8" fill="#06b6d415"/>
+          <rect x="1" y="1" width="46" height="46" rx="7" stroke="#06b6d4" stroke-width="1" stroke-opacity=".3"/>
+          <rect x="9" y="13" width="13" height="22" rx="2" stroke="#9333ea" stroke-width="1.2" fill="#9333ea08"/>
+          <rect x="26" y="13" width="13" height="22" rx="2" stroke="#06b6d4" stroke-width="1.2" fill="#06b6d408"/>
+          <line x1="22" y1="24" x2="26" y2="24" stroke="#d97706" stroke-width="1.5" stroke-linecap="round">
+            <animate attributeName="stroke-opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+          </line>
+          <polygon points="25,21 29,24 25,27" fill="#d97706" opacity=".8">
+            <animate attributeName="opacity" values=".8;0;.8" dur="1.2s" repeatCount="indefinite"/>
+          </polygon>
+          <rect x="12" y="18" width="7" height="2" rx="1" fill="#9333ea" opacity=".7">
+            <animate attributeName="width" values="7;5;7" dur="2s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="12" y="22" width="5" height="2" rx="1" fill="#9333ea" opacity=".5">
+            <animate attributeName="width" values="5;7;5" dur="1.8s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="29" y="18" width="7" height="2" rx="1" fill="#06b6d4" opacity=".7">
+            <animate attributeName="width" values="7;5;7" dur="2.2s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="29" y="22" width="5" height="2" rx="1" fill="#06b6d4" opacity=".5">
+            <animate attributeName="width" values="5;7;5" dur="1.6s" repeatCount="indefinite"/>
+          </rect>
+        </svg>
+      </div>
+      <div class="ft">Generate Both</div>
+      <div class="fd">Run text and image generation simultaneously from a single prompt — parallel AI power.</div>
+    </div>
+    <div class="fc">
+      <div class="feat-icon-wrap" style="--ic:#10b981">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="8" fill="#10b98115"/>
+          <rect x="1" y="1" width="46" height="46" rx="7" stroke="#10b981" stroke-width="1" stroke-opacity=".3"/>
+          <circle cx="24" cy="24" r="13" stroke="#10b981" stroke-width="1" fill="none" opacity=".2"/>
+          <circle cx="24" cy="24" r="13" stroke="#10b981" stroke-width="2.5" fill="none" stroke-dasharray="81.7" stroke-dashoffset="20" stroke-linecap="round" transform="rotate(-90 24 24)">
+            <animate attributeName="stroke-dashoffset" values="82;18;82" dur="4s" repeatCount="indefinite" ease="ease-in-out"/>
+            <animate attributeName="stroke" values="#10b981;#d97706;#10b981" dur="4s" repeatCount="indefinite"/>
+          </circle>
+          <text x="24" y="21" text-anchor="middle" fill="#10b981" font-size="8" font-weight="700" font-family="monospace">BLEU</text>
+          <text x="24" y="30" text-anchor="middle" fill="#d97706" font-size="9" font-weight="700" font-family="monospace">0.84</text>
+        </svg>
+      </div>
+      <div class="ft">BLEU Scoring</div>
+      <div class="fd">Automatic BLEU-4 evaluation on every output — measure quality and track improvement over time.</div>
+    </div>
+    <div class="fc">
+      <div class="feat-icon-wrap" style="--ic:#f59e0b">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="8" fill="#f59e0b15"/>
+          <rect x="1" y="1" width="46" height="46" rx="7" stroke="#f59e0b" stroke-width="1" stroke-opacity=".3"/>
+          <rect x="10" y="20" width="28" height="4" rx="2" fill="#f59e0b" fill-opacity=".15" stroke="#f59e0b" stroke-width=".8" stroke-opacity=".3"/>
+          <rect x="10" y="28" width="28" height="4" rx="2" fill="#9333ea" fill-opacity=".1" stroke="#9333ea" stroke-width=".8" stroke-opacity=".3"/>
+          <rect x="10" y="12" width="28" height="4" rx="2" fill="#06b6d4" fill-opacity=".1" stroke="#06b6d4" stroke-width=".8" stroke-opacity=".3"/>
+          <rect x="10" y="12" width="20" height="4" rx="2" fill="#06b6d4" opacity=".6">
+            <animate attributeName="width" values="20;26;16;20" dur="3s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="10" y="20" width="16" height="4" rx="2" fill="#f59e0b" opacity=".8">
+            <animate attributeName="width" values="16;22;12;16" dur="2.5s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="10" y="28" width="24" height="4" rx="2" fill="#9333ea" opacity=".7">
+            <animate attributeName="width" values="24;18;26;24" dur="3.5s" repeatCount="indefinite"/>
+          </rect>
+          <circle cx="38" cy="36" r="5" fill="#f59e0b" fill-opacity=".15" stroke="#f59e0b" stroke-width="1"/>
+          <line x1="36" y1="36" x2="40" y2="36" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="38" y1="34" x2="38" y2="38" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="ft">Full Control</div>
+      <div class="fd">Tune temperature, tokens, profiles. Balanced, creative, precise, or fast — you decide.</div>
+    </div>
+    <div class="fc">
+      <div class="feat-icon-wrap" style="--ic:#ec4899">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="8" fill="#ec489915"/>
+          <rect x="1" y="1" width="46" height="46" rx="7" stroke="#ec4899" stroke-width="1" stroke-opacity=".3"/>
+          <rect x="10" y="10" width="20" height="6" rx="1.5" fill="#ec4899" fill-opacity=".7"/>
+          <rect x="10" y="19" width="28" height="3" rx="1.5" fill="#9333ea" opacity=".5">
+            <animate attributeName="opacity" values=".5;.9;.5" dur="2s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="10" y="24" width="22" height="3" rx="1.5" fill="#d97706" opacity=".5">
+            <animate attributeName="opacity" values=".5;.9;.5" dur="2.4s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="10" y="29" width="25" height="3" rx="1.5" fill="#ec4899" opacity=".4">
+            <animate attributeName="opacity" values=".4;.8;.4" dur="1.8s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="10" y="34" width="18" height="3" rx="1.5" fill="#06b6d4" opacity=".5">
+            <animate attributeName="opacity" values=".5;.9;.5" dur="2.2s" repeatCount="indefinite"/>
+          </rect>
+          <circle cx="33" cy="13" r="4" fill="none" stroke="#ec4899" stroke-width="1.2">
+            <animate attributeName="r" values="4;5;4" dur="1.5s" repeatCount="indefinite"/>
+            <animate attributeName="stroke-opacity" values="1;.3;1" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="33" cy="13" r="2" fill="#ec4899">
+            <animate attributeName="opacity" values="1;.4;1" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      </div>
+      <div class="ft">History & Analytics</div>
+      <div class="fd">Every generation logged with timestamps, metrics, and model info. Full personal session history.</div>
+    </div>
   </div>
 </section>
 <section id="demo" class="demo-section">
@@ -879,7 +1059,7 @@ def signup():
                 message='<div class="error-msg">Password must be at least 6 characters.</div>'
             )
 
-        users = load_users()
+        users = load_users_all()
         if username in users:
             return make_auth_page(
                 "Create account", "Join AICIG Studio — free forever.", "✨",
@@ -913,7 +1093,7 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
-        users = load_users()
+        users = load_users_all()
 
         if username not in users or not check_password_hash(users[username]["password"], password):
             fields = '<div class="form-group"><label>Username</label><input name="username" type="text" placeholder="yourname" value="'+username+'" autocomplete="username"></div><div class="form-group"><label>Password</label><input name="password" type="password" placeholder="Your password" autocomplete="current-password"></div>'
