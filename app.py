@@ -1,4 +1,90 @@
 import os
+import sys
+
+# ============================================================
+# CRITICAL: Patch gradio_client BEFORE importing gradio
+# Fixes: TypeError: argument of type 'bool' is not iterable
+# This patches the installed gradio_client/utils.py file
+# directly so the fix survives across all requests.
+# ============================================================
+def _patch_gradio_client():
+    try:
+        import gradio_client
+        import os as _os
+        utils_path = _os.path.join(_os.path.dirname(gradio_client.__file__), "utils.py")
+        with open(utils_path, "r") as f:
+            src = f.read()
+
+        OLD = (
+            'def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
+            '    \"\"\"Convert the json schema into a python type hint\"\"\"\n'
+            '    if schema == {}:\n'
+            '        return \"Any\"\n'
+            '    type_ = get_type(schema)'
+        )
+        NEW = (
+            'def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
+            '    \"\"\"Convert the json schema into a python type hint\"\"\"\n'
+            '    if not isinstance(schema, dict):\n'
+            '        return \"Any\"\n'
+            '    if schema == {}:\n'
+            '        return \"Any\"\n'
+            '    if \"additionalProperties\" in schema and not isinstance(schema.get(\"additionalProperties\"), dict):\n'
+            '        schema = {k: v for k, v in schema.items() if k != \"additionalProperties\"}\n'
+            '    type_ = get_type(schema)'
+        )
+
+        if OLD in src:
+            src = src.replace(OLD, NEW)
+            with open(utils_path, "w") as f:
+                f.write(src)
+            print("gradio_client patch: applied")
+        elif "if not isinstance(schema, dict):" in src:
+            print("gradio_client patch: already applied")
+        else:
+            print("gradio_client patch: target not found - applying runtime patch")
+            # Runtime fallback: patch the live function
+            import gradio_client.utils as _gcu
+            _orig = _gcu._json_schema_to_python_type
+            def _safe(schema, defs):
+                if not isinstance(schema, dict):
+                    return "Any"
+                if "additionalProperties" in schema and not isinstance(schema.get("additionalProperties"), dict):
+                    schema = {k: v for k, v in schema.items() if k != "additionalProperties"}
+                return _orig(schema, defs)
+            _gcu._json_schema_to_python_type = _safe
+            print("gradio_client patch: runtime patch applied")
+    except Exception as e:
+        print(f"gradio_client patch failed: {e}")
+
+def _patch_gradio_routes():
+    try:
+        import gradio
+        import os as _os
+        routes_path = _os.path.join(_os.path.dirname(gradio.__file__), "routes.py")
+        with open(routes_path, "r") as f:
+            src = f.read()
+        OLD = "    gradio_api_info = api_info(False)"
+        NEW = (
+            "    try:\n"
+            "        gradio_api_info = api_info(False)\n"
+            "    except Exception as _api_err:\n"
+            "        print(f\'api_info skipped: {_api_err}\')\n"
+            "        gradio_api_info = {}"
+        )
+        if OLD in src and "api_info skipped" not in src:
+            src = src.replace(OLD, NEW)
+            with open(routes_path, "w") as f:
+                f.write(src)
+            print("gradio routes patch: applied")
+        else:
+            print("gradio routes patch: already applied or not needed")
+    except Exception as e:
+        print(f"gradio routes patch failed: {e}")
+
+_patch_gradio_client()
+_patch_gradio_routes()
+
 import gradio as gr
 
 from model_manager import ModelManager
