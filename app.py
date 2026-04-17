@@ -1,106 +1,98 @@
 import os
 import sys
 
-# ============================================================
-# CRITICAL: Patch gradio_client BEFORE importing gradio
-# Fixes: TypeError: argument of type 'bool' is not iterable
-# This patches the installed gradio_client/utils.py file
-# directly so the fix survives across all requests.
-# ============================================================
-def _patch_gradio_client():
+# ================================================================
+# PATCH: Fix gradio_client bug before anything else loads
+# Patches get_type() AND _json_schema_to_python_type() in-place
+# ================================================================
+def _apply_gradio_patches():
     try:
         import gradio_client
         import os as _os
-        utils_path = _os.path.join(_os.path.dirname(gradio_client.__file__), "utils.py")
-        with open(utils_path, "r") as f:
+        path = _os.path.join(_os.path.dirname(gradio_client.__file__), "utils.py")
+        with open(path) as f:
             src = f.read()
 
-        OLD = (
-            'def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
-            '    \"\"\"Convert the json schema into a python type hint\"\"\"\n'
-            '    if schema == {}:\n'
-            '        return \"Any\"\n'
-            '    type_ = get_type(schema)'
-        )
-        NEW = (
-            'def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
-            '    \"\"\"Convert the json schema into a python type hint\"\"\"\n'
-            '    if not isinstance(schema, dict):\n'
-            '        return \"Any\"\n'
-            '    if schema == {}:\n'
-            '        return \"Any\"\n'
-            '    if \"additionalProperties\" in schema and not isinstance(schema.get(\"additionalProperties\"), dict):\n'
-            '        schema = {k: v for k, v in schema.items() if k != \"additionalProperties\"}\n'
-            '    type_ = get_type(schema)'
-        )
+        changed = False
 
-        if OLD in src:
-            src = src.replace(OLD, NEW)
-            with open(utils_path, "w") as f:
+        # Patch 1: get_type() - guard against non-dict input
+        p1_old = 'def get_type(schema: dict):\n    if "const" in schema:'
+        p1_new = 'def get_type(schema: dict):\n    if not isinstance(schema, dict):\n        return {}\n    if "const" in schema:'
+        if p1_old in src:
+            src = src.replace(p1_old, p1_new)
+            changed = True
+            print("[patch] get_type() fixed")
+        elif 'if not isinstance(schema, dict):\n        return {}' in src:
+            print("[patch] get_type() already fixed")
+
+        # Patch 2: _json_schema_to_python_type() - guard bool schema + additionalProperties
+        p2_old = ('def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
+                  '    """Convert the json schema into a python type hint"""\n'
+                  '    if schema == {}:\n'
+                  '        return "Any"\n'
+                  '    type_ = get_type(schema)')
+        p2_new = ('def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
+                  '    """Convert the json schema into a python type hint"""\n'
+                  '    if not isinstance(schema, dict):\n'
+                  '        return "Any"\n'
+                  '    if schema == {}:\n'
+                  '        return "Any"\n'
+                  '    if "additionalProperties" in schema and not isinstance(schema.get("additionalProperties"), dict):\n'
+                  '        schema = {k: v for k, v in schema.items() if k != "additionalProperties"}\n'
+                  '    type_ = get_type(schema)')
+        if p2_old in src:
+            src = src.replace(p2_old, p2_new)
+            changed = True
+            print("[patch] _json_schema_to_python_type() fixed")
+        elif 'if not isinstance(schema, dict):\n        return "Any"' in src:
+            print("[patch] _json_schema_to_python_type() already fixed")
+
+        if changed:
+            with open(path, "w") as f:
                 f.write(src)
-            print("gradio_client patch: applied")
-        elif "if not isinstance(schema, dict):" in src:
-            print("gradio_client patch: already applied")
-        else:
-            print("gradio_client patch: target not found - applying runtime patch")
-            # Runtime fallback: patch the live function
-            import gradio_client.utils as _gcu
-            _orig = _gcu._json_schema_to_python_type
-            def _safe(schema, defs):
-                if not isinstance(schema, dict):
-                    return "Any"
-                if "additionalProperties" in schema and not isinstance(schema.get("additionalProperties"), dict):
-                    schema = {k: v for k, v in schema.items() if k != "additionalProperties"}
-                return _orig(schema, defs)
-            _gcu._json_schema_to_python_type = _safe
-            print("gradio_client patch: runtime patch applied")
-    except Exception as e:
-        print(f"gradio_client patch failed: {e}")
 
-def _patch_gradio_routes():
+    except Exception as e:
+        print(f"[patch] file patch failed ({e}), applying runtime patch")
+
+    # Runtime patch as fallback (always apply to be safe)
     try:
-        import gradio
-        import os as _os
-        routes_path = _os.path.join(_os.path.dirname(gradio.__file__), "routes.py")
-        with open(routes_path, "r") as f:
-            src = f.read()
-        OLD = "    gradio_api_info = api_info(False)"
-        NEW = (
-            "    try:\n"
-            "        gradio_api_info = api_info(False)\n"
-            "    except Exception as _api_err:\n"
-            "        print(f\'api_info skipped: {_api_err}\')\n"
-            "        gradio_api_info = {}"
-        )
-        if OLD in src and "api_info skipped" not in src:
-            src = src.replace(OLD, NEW)
-            with open(routes_path, "w") as f:
-                f.write(src)
-            print("gradio routes patch: applied")
-        else:
-            print("gradio routes patch: already applied or not needed")
+        import gradio_client.utils as _u
+        _orig_get_type = _u.get_type
+        def _safe_get_type(schema):
+            if not isinstance(schema, dict):
+                return {}
+            return _orig_get_type(schema)
+        _u.get_type = _safe_get_type
+
+        _orig_inner = _u._json_schema_to_python_type
+        def _safe_inner(schema, defs):
+            if not isinstance(schema, dict):
+                return "Any"
+            if "additionalProperties" in schema and not isinstance(schema.get("additionalProperties"), dict):
+                schema = {k: v for k, v in schema.items() if k != "additionalProperties"}
+            return _orig_inner(schema, defs)
+        _u._json_schema_to_python_type = _safe_inner
+        print("[patch] runtime patch applied")
     except Exception as e:
-        print(f"gradio routes patch failed: {e}")
+        print(f"[patch] runtime patch failed: {e}")
 
-_patch_gradio_client()
-_patch_gradio_routes()
+_apply_gradio_patches()
 
+# ================================================================
 import gradio as gr
-
 from model_manager import ModelManager
 from text_engine import TextEngine
 from image_engine import ImageEngine
 from history_logger import HistoryLogger
 from evaluation import Evaluator
 
-# Check tokens
 hf_token = os.environ.get("HF_TOKEN", "")
 replicate_token = os.environ.get("REPLICATE_TOKEN", "")
 
 if not hf_token:
-    print("WARNING: HF_TOKEN not set! Text generation will fail.")
+    print("WARNING: HF_TOKEN not set!")
 if not replicate_token:
-    print("WARNING: REPLICATE_TOKEN not set! Image generation will fail.")
+    print("WARNING: REPLICATE_TOKEN not set!")
 
 try:
     manager = ModelManager()
@@ -120,21 +112,16 @@ def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_
             return "Please enter a prompt.", "", ""
         if not hf_token:
             return "Error: HF_TOKEN not configured.", "", ""
-
         config = manager.get_model_config(model_key)
         params = manager.get_profile(profile_name)
         params.update({"max_tokens": int(max_tokens), "temperature": temperature, "top_p": top_p})
-
         text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
-
         if text.startswith("Error:"):
             return text, "", ""
-
         bleu = evaluator.bleu_score(prompt, text)
         logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
         return text, f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s", ""
     except Exception as e:
-        print(f"Text generation error: {e}")
         return f"Error: {str(e)}", "", ""
 
 
@@ -142,22 +129,15 @@ def generate_image(prompt, model_key, width, height, steps):
     try:
         if not prompt.strip():
             return None, "Please enter a prompt."
-        if not replicate_token and not hf_token:
-            return None, "Error: No token configured."
-
         config = manager.get_image_model_config(model_key)
         image, elapsed, message = image_engine.generate(
             prompt, config["model_id"], int(width), int(height), int(steps)
         )
-
         if image is not None:
             logger.log("image", prompt, "generated", model_key, {}, {"time": elapsed})
             return image, f"Generated in {elapsed:.2f}s"
-        else:
-            return None, f"Failed: {message}"
-
+        return None, f"Failed: {message}"
     except Exception as e:
-        print(f"Image generation error: {e}")
         return None, f"Error: {str(e)}"
 
 
@@ -198,13 +178,11 @@ def rate_last(rating):
         return f"Error: {e}"
 
 
-# Get model lists safely
 try:
     text_models = manager.get_text_model_keys()
     image_models = manager.get_image_model_keys()
     profiles = manager.get_profile_names()
-except Exception as e:
-    print(f"Error getting model lists: {e}")
+except Exception:
     text_models = ["qwen-7b", "llama-8b", "deepseek"]
     image_models = ["stable-diffusion-v1-5", "sdxl-base"]
     profiles = ["balanced", "creative", "precise", "fast"]
@@ -246,7 +224,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                         i_steps = gr.Slider(10, 50, value=20, step=5, label="Steps")
                     i_btn = gr.Button("Generate Image", variant="primary")
                 with gr.Column(scale=3):
-                    i_out = gr.Image(label="Generated Image", type="pil")  # pil not filepath
+                    i_out = gr.Image(label="Generated Image", type="pil")
                     i_meta = gr.Textbox(label="Info", interactive=False)
             i_btn.click(generate_image, [i_prompt, i_model, i_width, i_height, i_steps], [i_out, i_meta])
 
@@ -270,7 +248,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                 with gr.Column(scale=3):
                     b_tout = gr.Textbox(label="Generated Text", lines=8)
                     b_tmeta = gr.Textbox(label="Text Metrics", interactive=False)
-                    b_iout = gr.Image(label="Generated Image", type="pil")  # pil not filepath
+                    b_iout = gr.Image(label="Generated Image", type="pil")
                     b_imeta = gr.Textbox(label="Image Info", interactive=False)
             b_btn.click(generate_both,
                 inputs=[b_prompt, b_tmodel, b_imodel, b_profile, b_tokens, b_temp, b_top_p_state, b_width, b_height, b_steps],
@@ -292,7 +270,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                         lines.append(f"- `{k}`: temp={v.get('temperature', '?')}, top_p={v.get('top_p', '?')}")
                     return "\n".join(lines)
                 except Exception as e:
-                    return f"Error loading config: {e}"
+                    return f"Error: {e}"
             cfg_out = gr.Markdown()
             gr.Button("Load Config").click(show_config, [], [cfg_out])
 
@@ -310,8 +288,5 @@ if __name__ == "__main__":
     from gradio.routes import App
 
     port = int(os.environ.get("PORT", 10000))
-
-    # Mount Gradio onto a bare ASGI app without triggering api_info
     gradio_app = App.create_app(demo)
-
     uvicorn.run(gradio_app, host="0.0.0.0", port=port, log_level="info")
