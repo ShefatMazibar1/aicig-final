@@ -71,481 +71,405 @@ LANDING_HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AICIG Studio — AI Content & Image Generator</title>
+<title>AICIG Studio — Generate Content & Images with AI</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#08080f;--bg2:#0f0f1a;--bg3:#1a1a2e;
-  --purple:#a855f7;--purple2:#7c3aed;--pink:#ec4899;--cyan:#06b6d4;
-  --text:#f0f0ff;--text2:#a0a0c0;--text3:#505070;
-  --border:#ffffff15;--border2:#ffffff25;
+  --bg:#07070e;--bg2:#0d0d1a;--bg3:#13131f;
+  --purple:#a855f7;--purple2:#7c3aed;--pink:#ec4899;--cyan:#06b6d4;--green:#10b981;
+  --text:#ffffff;--text2:#9ca3af;--text3:#4b5563;
+  --border:#ffffff0f;--border2:#ffffff1a;
 }
 html{scroll-behavior:smooth}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 60px;display:flex;align-items:center;justify-content:space-between;background:#08080fcc;backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:all .3s}
-.nav-logo{font-size:18px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.nav-links{display:flex;align-items:center;gap:32px}
-.nav-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .15s}
-.nav-links a:hover{color:var(--text)}
-.nav-cta{display:flex;gap:10px}
-.btn-outline{padding:8px 20px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .15s}
-.btn-outline:hover{border-color:var(--purple);color:var(--purple)}
-.btn-primary{padding:8px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:none;font-weight:600;transition:opacity .15s}
-.btn-primary:hover{opacity:.85}
-
-/* CANVAS */
-#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:0 48px;height:64px;display:flex;align-items:center;justify-content:space-between;background:#07070eee;backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.logo{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo-icon{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--purple2),var(--pink));display:flex;align-items:center;justify-content:center;font-size:13px}
+.nav-mid{display:flex;gap:28px}
+.nav-mid a{font-size:14px;color:var(--text2);text-decoration:none;transition:color .15s}
+.nav-mid a:hover{color:#fff}
+.nav-right{display:flex;align-items:center;gap:10px}
+.n-login{font-size:13px;color:var(--text2);text-decoration:none;padding:7px 16px;transition:color .15s}
+.n-login:hover{color:#fff}
+.n-signup{font-size:13px;font-weight:600;color:#fff;text-decoration:none;padding:8px 18px;background:linear-gradient(135deg,var(--purple2),var(--pink));border-radius:8px;transition:opacity .15s}
+.n-signup:hover{opacity:.85}
 
 /* HERO */
-.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;z-index:1}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border:1px solid #a855f740;border-radius:99px;font-size:11px;color:var(--purple);background:#a855f710;margin-bottom:28px;animation:fadeUp .8s ease both}
-.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);box-shadow:0 0 8px var(--purple);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeUp2{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.hero h1{font-size:clamp(36px,6vw,72px);font-weight:700;line-height:1.1;margin-bottom:20px;letter-spacing:-.02em;animation:fadeUp .8s .1s ease both}
-.hero h1 .grad{background:linear-gradient(90deg,var(--purple),var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:gradShift 4s infinite linear}
-@keyframes gradShift{0%{background-position:0%}100%{background-position:200%}}
-.hero p{font-size:17px;color:var(--text2);max-width:540px;line-height:1.7;margin-bottom:40px;animation:fadeUp .8s .2s ease both}
-.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s .3s ease both}
-.hero-btn-main{padding:14px 32px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;transition:transform .1s,opacity .15s,box-shadow .2s;display:inline-flex;align-items:center;gap:8px}
-.hero-btn-main:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 30px #7c3aed40}
-.hero-btn-sec{padding:14px 32px;border:1px solid var(--border2);border-radius:10px;background:transparent;color:var(--text);font-size:15px;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .15s}
-.hero-btn-sec:hover{border-color:var(--purple);color:var(--purple);box-shadow:0 0 20px #a855f720}
-.hero-sub{margin-top:24px;font-size:12px;color:var(--text3);animation:fadeUp .8s .4s ease both}
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid #a855f730;border-radius:99px;font-size:12px;color:#c084fc;background:#a855f70a;margin-bottom:32px;animation:up .7s ease both}
+.tag-pulse{width:6px;height:6px;border-radius:50%;background:#a855f7;box-shadow:0 0 8px #a855f7;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero h1{font-size:clamp(40px,7vw,82px);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:24px;animation:up .7s .08s ease both}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#c084fc,#f472b6,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:gradmove 5s infinite linear}
+@keyframes gradmove{0%{background-position:0%}100%{background-position:200%}}
+.hero-sub{font-size:18px;color:var(--text2);max-width:560px;line-height:1.65;margin-bottom:40px;animation:up .7s .16s ease both}
+.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:up .7s .24s ease both}
+.cta-main{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:15px;font-weight:700;border-radius:10px;text-decoration:none;transition:transform .15s,box-shadow .15s}
+.cta-main:hover{transform:translateY(-2px);box-shadow:0 10px 40px #7c3aed35}
+.cta-sec{display:inline-flex;align-items:center;gap:6px;padding:14px 28px;border:1px solid var(--border2);color:var(--text2);font-size:15px;font-weight:500;border-radius:10px;text-decoration:none;transition:all .15s}
+.cta-sec:hover{border-color:#a855f750;color:#fff}
+.hero-note{margin-top:20px;font-size:12px;color:var(--text3);animation:up .7s .32s ease both}
+
+/* MARQUEE */
+.marquee-wrap{position:relative;z-index:1;padding:32px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;background:#ffffff03}
+.marquee-track{display:flex;gap:48px;animation:marquee 20s linear infinite;white-space:nowrap}
+.marquee-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3);flex-shrink:0}
+.marquee-dot{width:5px;height:5px;border-radius:50%;background:var(--purple)}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* LIVE DEMO */
-.live-demo{margin-top:56px;width:100%;max-width:780px;animation:fadeUp .8s .5s ease both}
-.demo-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:center}
-.demo-dot{width:5px;height:5px;border-radius:50%;background:var(--green,#10b981);animation:pulse 1.5s infinite}
-.demo-frame{background:#0f0f1a;border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 0 60px #7c3aed18,0 0 120px #ec489908}
-.demo-bar{background:#1a1a2e;padding:10px 16px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border)}
-.demo-dot-r{width:9px;height:9px;border-radius:50%;background:#ff5f57}
-.demo-dot-y{width:9px;height:9px;border-radius:50%;background:#febc2e}
-.demo-dot-g{width:9px;height:9px;border-radius:50%;background:#28c840}
-.demo-url{flex:1;background:#0f0f1a;border-radius:5px;padding:3px 12px;font-size:10px;color:var(--text3);margin:0 10px}
-.demo-body{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:260px}
-.demo-left{display:flex;flex-direction:column;gap:10px}
-.demo-card{background:#ffffff06;border:1px solid var(--border);border-radius:10px;padding:12px}
-.demo-input-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.demo-textarea{width:100%;height:52px;background:#1a1a2e;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:10px;color:var(--text2);font-family:inherit;resize:none;outline:none}
-.demo-btn{width:100%;padding:7px;border:none;border-radius:6px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:10px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
-.demo-right{background:#ffffff04;border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column}
-.demo-out-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-.demo-lines{flex:1;display:flex;flex-direction:column;gap:5px;justify-content:center}
-.demo-line{height:4px;border-radius:2px;background:#a855f720;animation:shimmer 2s infinite}
-.demo-line:nth-child(2){animation-delay:.2s;width:88%}
-.demo-line:nth-child(3){animation-delay:.4s;width:94%}
-.demo-line:nth-child(4){animation-delay:.6s;width:75%}
-.demo-line:nth-child(5){animation-delay:.8s;width:90%}
-.demo-line:nth-child(6){animation-delay:1s;width:82%}
-@keyframes shimmer{0%,100%{opacity:.4;background:#a855f720}50%{opacity:1;background:#a855f750}}
-.demo-img-preview{height:90px;background:#1a1a2e;border-radius:6px;overflow:hidden;position:relative;margin-top:8px}
-.demo-img-scan{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),var(--pink),transparent);animation:scan 2s infinite linear}
-@keyframes scan{0%{top:0}100%{top:100%}}
-.demo-img-pixels{width:100%;height:100%;display:grid;grid-template-columns:repeat(12,1fr);gap:1px;padding:4px}
-.pixel{border-radius:1px;animation:pixelate 3s infinite}
-@keyframes pixelate{0%,100%{opacity:.2}50%{opacity:.8}}
-
-/* TYPING DEMO */
-.typing-area{min-height:32px;font-size:10px;color:var(--cyan);font-family:monospace;line-height:1.5}
-.cursor{display:inline-block;width:7px;height:11px;background:var(--cyan);margin-left:1px;animation:blink .8s infinite}
-@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
-
-/* LIVE IMAGE GEN SECTION */
-.live-gen-section{padding:80px 60px;max-width:1200px;margin:0 auto;position:relative;z-index:1}
-.section-label{font-size:11px;color:var(--purple);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
-.section-title{font-size:clamp(26px,4vw,40px);font-weight:700;line-height:1.2;margin-bottom:12px}
-.section-sub{font-size:15px;color:var(--text2);max-width:500px;line-height:1.7;margin-bottom:36px}
-.live-gen-card{background:#ffffff06;border:1px solid var(--border);border-radius:20px;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:24px;position:relative;overflow:hidden}
-.live-gen-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--pink)60,transparent)}
-.live-input-wrap{display:flex;flex-direction:column;gap:14px}
-.live-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.live-textarea{width:100%;background:#1a1a2e;border:1px solid var(--border2);border-radius:10px;padding:12px;font-size:13px;font-family:inherit;color:var(--text);resize:none;min-height:80px;outline:none;line-height:1.5}
-.live-textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px #a855f715}
-.live-examples{display:flex;flex-wrap:wrap;gap:6px}
-.live-example{font-size:11px;padding:4px 10px;border:1px solid var(--border2);border-radius:99px;color:var(--text3);cursor:pointer;transition:all .15s}
-.live-example:hover{border-color:var(--purple);color:var(--purple)}
-.live-gen-btn{padding:12px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;width:100%}
-.live-gen-btn:hover{opacity:.88;transform:translateY(-1px)}
-.live-gen-btn:disabled{opacity:.45;cursor:wait;transform:none}
-.live-output{display:flex;flex-direction:column;gap:12px}
-.live-img-frame{width:100%;aspect-ratio:1;background:#0f0f1a;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-.live-img-frame img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:none}
-.live-img-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text3)}
-.live-img-placeholder svg{opacity:.3}
-.live-img-placeholder p{font-size:12px}
-.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:2px;width:0%;transition:width .5s}
-.live-status{font-size:12px;color:var(--text3);display:none;align-items:center;gap:6px}
-.live-status.active{display:flex}
+.demo-section{position:relative;z-index:1;padding:100px 48px;max-width:1100px;margin:0 auto}
+.section-eyebrow{font-size:11px;font-weight:700;color:#a855f7;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px}
+.section-h{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
+.section-p{font-size:16px;color:var(--text2);max-width:480px;line-height:1.7;margin-bottom:40px}
+.demo-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;overflow:hidden;position:relative}
+.demo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#a855f780,#ec489980,transparent)}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+@media(max-width:700px){.demo-grid{grid-template-columns:1fr}}
+.demo-left{padding:28px;border-right:1px solid var(--border)}
+.demo-right{padding:28px;display:flex;flex-direction:column}
+.demo-field-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.demo-textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;font-size:13px;font-family:inherit;color:#fff;resize:none;min-height:80px;outline:none;line-height:1.5;transition:border-color .15s}
+.demo-textarea:focus{border-color:#a855f7;box-shadow:0 0 0 3px #a855f712}
+.demo-textarea::placeholder{color:var(--text3)}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{font-size:11px;padding:4px 11px;border:1px solid var(--border2);border-radius:99px;color:var(--text3);cursor:pointer;transition:all .15s}
+.chip:hover{border-color:#a855f7;color:#c084fc}
+.demo-gen-btn{width:100%;padding:12px;margin-top:16px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
+.demo-gen-btn:hover{opacity:.88;transform:translateY(-1px)}
+.demo-gen-btn:disabled{opacity:.4;cursor:wait;transform:none}
+.demo-img-wrap{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:12px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.demo-img-wrap img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:none}
+.demo-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text3)}
+.demo-empty svg{opacity:.25}
+.demo-empty p{font-size:12px}
+.demo-prog{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:14px;display:none}
+.demo-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--pink));width:0%;transition:width .5s ease}
+.demo-stat-row{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--text3);display:none}
+.demo-stat-row.show{display:flex}
 .spin{width:10px;height:10px;border:1.5px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* FEATURES */
-.features-section{padding:80px 60px;max-width:1200px;margin:0 auto;position:relative;z-index:1}
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-@media(max-width:768px){.features-grid{grid-template-columns:1fr}}
-.feature-card{background:#ffffff06;border:1px solid var(--border);border-radius:16px;padding:24px;transition:all .25s;cursor:default}
-.feature-card:hover{border-color:#a855f740;transform:translateY(-3px);box-shadow:0 12px 40px #7c3aed15}
-.feature-card::before{content:'';display:block;width:36px;height:36px;border-radius:9px;margin-bottom:14px;font-size:16px;display:flex;align-items:center;justify-content:center}
-.fi{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;margin-bottom:14px;font-size:16px}
-.fi.p{background:#a855f715;border:1px solid #a855f730}
-.fi.pk{background:#ec489915;border:1px solid #ec489930}
-.fi.c{background:#06b6d415;border:1px solid #06b6d430}
-.fi.g{background:#10b98115;border:1px solid #10b98130}
-.fi.a{background:#f59e0b15;border:1px solid #f59e0b30}
-.fi.b{background:#3b82f615;border:1px solid #3b82f630}
-.feature-title{font-size:14px;font-weight:600;margin-bottom:7px}
-.feature-desc{font-size:12px;color:var(--text2);line-height:1.6}
-
 /* STATS */
-.stats-bar{background:#ffffff04;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:48px 60px;position:relative;z-index:1}
-.stats-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;text-align:center}
-.stat-num{font-size:34px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.stat-label{font-size:12px;color:var(--text3);margin-top:4px}
+.stats-section{position:relative;z-index:1;background:#ffffff04;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:72px 48px}
+.stats-grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:32px;text-align:center}
+@media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-n{font-size:48px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.stat-l{font-size:13px;color:var(--text3);margin-top:6px}
+
+/* FEATURES */
+.features-section{position:relative;z-index:1;padding:100px 48px;max-width:1100px;margin:0 auto}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.feat-grid{grid-template-columns:1fr}}
+.feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;transition:all .2s;cursor:default}
+.feat-card:hover{border-color:#a855f730;transform:translateY(-2px)}
+.feat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px}
+.feat-title{font-size:15px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em}
+.feat-desc{font-size:13px;color:var(--text2);line-height:1.65}
 
 /* STEPS */
-.steps-section{padding:80px 60px;max-width:1200px;margin:0 auto;position:relative;z-index:1}
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;margin-top:48px}
-@media(max-width:768px){.steps{grid-template-columns:1fr;gap:20px}}
-.steps::before{content:'';position:absolute;top:24px;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,var(--purple)40,var(--pink)60,transparent)}
-@media(max-width:768px){.steps::before{display:none}}
-.step{text-align:center;padding:0 16px}
-.step-num{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 0 24px #7c3aed40;transition:transform .2s}
-.step:hover .step-num{transform:scale(1.1)}
-.step-title{font-size:13px;font-weight:600;margin-bottom:6px}
-.step-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.steps-section{position:relative;z-index:1;padding:100px 48px;max-width:1100px;margin:0 auto}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:48px}
+@media(max-width:700px){.steps-grid{grid-template-columns:1fr 1fr}}
+.step-card{position:relative}
+.step-num{font-size:13px;font-weight:700;color:#a855f7;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.step-num::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#a855f730,transparent)}
+.step-title{font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-.02em}
+.step-desc{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* CTA BANNER */
+.cta-section{position:relative;z-index:1;margin:0 48px 80px;border-radius:20px;background:linear-gradient(135deg,#1a0a2e,#1a0a1e,#0a1a1e);border:1px solid #a855f720;padding:72px 48px;text-align:center;overflow:hidden}
+.cta-section::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:400px;height:200px;background:radial-gradient(ellipse,#7c3aed20,transparent 70%);pointer-events:none}
+.cta-section h2{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.03em;margin-bottom:14px}
+.cta-section p{font-size:16px;color:var(--text2);margin-bottom:32px}
 
 /* FOOTER */
-footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
-.footer-logo{font-size:15px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.footer-text{font-size:12px;color:var(--text3)}
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:40px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.foot-logo{font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px}
+.foot-icon{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--purple2),var(--pink));display:flex;align-items:center;justify-content:center;font-size:10px}
+.foot-text{font-size:12px;color:var(--text3)}
 </style>
 </head>
 <body>
-<canvas id="particles"></canvas>
+<canvas id="bg"></canvas>
 
 <nav>
-  <div class="nav-logo">AICIG Studio</div>
-  <div class="nav-links">
+  <a href="/" class="logo">
+    <div class="logo-icon">🤖</div>
+    AICIG Studio
+  </a>
+  <div class="nav-mid">
+    <a href="#demo">Live demo</a>
     <a href="#features">Features</a>
-    <a href="#live">Try it live</a>
     <a href="#how">How it works</a>
   </div>
-  <div class="nav-cta">
-    <a href="/login" class="btn-outline">Sign in</a>
-    <a href="/signup" class="btn-primary">Get started</a>
+  <div class="nav-right">
+    <a href="/login" class="n-login">Sign in</a>
+    <a href="/signup" class="n-signup">Get started free →</a>
   </div>
 </nav>
 
-<div class="hero">
-  <div class="hero-badge"><span class="badge-dot"></span>Final Year Project · University of Westminster</div>
-  <h1>Generate content &amp;<br><span class="grad">images with AI</span></h1>
-  <p>AICIG Studio combines fast language models with AI image generation — completely free, open source, and built for everyone.</p>
-  <div class="hero-btns">
-    <a href="/signup" class="hero-btn-main">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
-      Start for free
+<section class="hero">
+  <div class="hero-tag"><span class="tag-pulse"></span>Final Year Project · University of Westminster</div>
+  <h1>Stop Searching.<br>Start <em>Generating.</em></h1>
+  <p class="hero-sub">AICIG Studio turns your prompts into high-quality articles, blog posts, and AI images — in seconds. Completely free. No credit card needed.</p>
+  <div class="hero-ctas">
+    <a href="/signup" class="cta-main">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Start generating free
     </a>
-    <a href="/login" class="hero-btn-sec">Sign in</a>
+    <a href="#demo" class="cta-sec">
+      See it live
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
   </div>
-  <div class="hero-sub">No credit card · Free forever · Open source</div>
+  <div class="hero-note">No credit card &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; Open source</div>
+</section>
 
-  <div class="live-demo">
-    <div class="demo-label"><span class="demo-dot" style="background:#10b981"></span>Live preview</div>
-    <div class="demo-frame">
-      <div class="demo-bar">
-        <div class="demo-dot-r"></div><div class="demo-dot-y"></div><div class="demo-dot-g"></div>
-        <div class="demo-url">aicig-final.onrender.com/app</div>
+<div class="marquee-wrap">
+  <div class="marquee-track" id="marquee">
+    <div class="marquee-item"><span class="marquee-dot"></span>Text generation</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Image synthesis</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>BLEU evaluation</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Llama 3.1 · Qwen 2.5</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Pollinations.ai</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Generation history</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Dark &amp; light mode</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Real-time analytics</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Text generation</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Image synthesis</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>BLEU evaluation</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Llama 3.1 · Qwen 2.5</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Pollinations.ai</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Generation history</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Dark &amp; light mode</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Real-time analytics</div>
+  </div>
+</div>
+
+<section class="stats-section">
+  <div class="stats-grid">
+    <div><div class="stat-n" id="sn1">0</div><div class="stat-l">AI models available</div></div>
+    <div><div class="stat-n" id="sn2">0%</div><div class="stat-l">Free to use, forever</div></div>
+    <div><div class="stat-n" id="sn3">0s</div><div class="stat-l">Average text generation</div></div>
+    <div><div class="stat-n" id="sn4">∞</div><div class="stat-l">Generations allowed</div></div>
+  </div>
+</section>
+
+<section id="demo" class="demo-section">
+  <div class="section-eyebrow">Live demo</div>
+  <div class="section-h">Try it now.<br>No account required.</div>
+  <div class="section-p">Type a prompt, click generate, and watch AICIG create a real AI image in seconds. Sign up for text generation and history.</div>
+  <div class="demo-card">
+    <div class="demo-grid">
+      <div class="demo-left">
+        <div class="demo-field-label">Your prompt</div>
+        <textarea class="demo-textarea" id="dp" placeholder="A cyberpunk city at night with neon lights..." rows="3"></textarea>
+        <div class="demo-field-label" style="margin-top:16px">Quick examples</div>
+        <div class="chip-row">
+          <span class="chip" onclick="setP('A neon cyberpunk city at night')">Cyberpunk city</span>
+          <span class="chip" onclick="setP('A magical glowing forest at dusk')">Magic forest</span>
+          <span class="chip" onclick="setP('A futuristic space station orbiting Earth')">Space station</span>
+          <span class="chip" onclick="setP('An AI robot brain made of crystal and light')">AI robot brain</span>
+          <span class="chip" onclick="setP('An underwater bioluminescent kingdom')">Ocean kingdom</span>
+          <span class="chip" onclick="setP('A dragon made of fire and stars')">Fire dragon</span>
+        </div>
+        <button class="demo-gen-btn" id="dgb" onclick="demoGen()">Generate image →</button>
+        <div class="demo-prog" id="dprog"><div class="demo-prog-fill" id="dpf"></div></div>
+        <div class="demo-stat-row" id="dstat"></div>
       </div>
-      <div class="demo-body">
-        <div class="demo-left">
-          <div class="demo-card">
-            <div class="demo-input-label">Prompt</div>
-            <div class="typing-area" id="typing-area"></div>
-            <div class="demo-btn">Generate text</div>
+      <div class="demo-right">
+        <div class="demo-field-label">Generated image</div>
+        <div class="demo-img-wrap" id="diw">
+          <div class="demo-empty" id="dem">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="6" width="36" height="36" rx="7" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="17" r="3.5" fill="currentColor" opacity=".4"/><path d="M6 32l11-11 8 8 7-8 16 11" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <p>Image renders here</p>
           </div>
-          <div class="demo-card" style="flex:1">
-            <div class="demo-input-label">Image prompt</div>
-            <div class="demo-img-preview">
-              <div class="demo-img-scan"></div>
-              <div class="demo-img-pixels" id="pixel-grid"></div>
-            </div>
-          </div>
+          <img id="dimg" alt="Generated">
         </div>
-        <div class="demo-right">
-          <div class="demo-out-label">Output</div>
-          <div class="demo-lines">
-            <div class="demo-line"></div>
-            <div class="demo-line"></div>
-            <div class="demo-line"></div>
-            <div class="demo-line"></div>
-            <div class="demo-line"></div>
-            <div class="demo-line"></div>
-          </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--text3)">
+          Want text generation too? <a href="/signup" style="color:#a855f7;text-decoration:none">Create a free account →</a>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="stats-bar">
-  <div class="stats-inner">
-    <div><div class="stat-num">3+</div><div class="stat-label">AI models</div></div>
-    <div><div class="stat-num">100%</div><div class="stat-label">Free</div></div>
-    <div><div class="stat-num">2</div><div class="stat-label">Generation modes</div></div>
-    <div><div class="stat-num">∞</div><div class="stat-label">Generations</div></div>
+<section id="features" class="features-section">
+  <div class="section-eyebrow">Features</div>
+  <div class="section-h">Everything you need<br>to create AI content</div>
+  <div class="section-p">A complete platform for generating, evaluating, and tracking AI content — built for research and everyday use.</div>
+  <div class="feat-grid">
+    <div class="feat-card"><div class="feat-icon" style="background:#a855f715;border:1px solid #a855f730">✍️</div><div class="feat-title">Text generation</div><div class="feat-desc">Generate articles, blogs, and summaries with Llama 3.1 via Groq — sub-second response times on free tier.</div></div>
+    <div class="feat-card"><div class="feat-icon" style="background:#ec489915;border:1px solid #ec489930">🖼️</div><div class="feat-title">Image generation</div><div class="feat-desc">Create stunning AI images from any prompt using Pollinations.ai — completely free, unlimited, no API key needed.</div></div>
+    <div class="feat-card"><div class="feat-icon" style="background:#06b6d415;border:1px solid #06b6d430">⚡</div><div class="feat-title">Generate both</div><div class="feat-desc">Run text and image generation simultaneously from one prompt — perfect for content creation at speed.</div></div>
+    <div class="feat-card"><div class="feat-icon" style="background:#10b98115;border:1px solid #10b98130">📊</div><div class="feat-title">BLEU scoring</div><div class="feat-desc">Every text output is automatically evaluated with BLEU-4 metrics so you can measure and improve quality.</div></div>
+    <div class="feat-card"><div class="feat-icon" style="background:#f59e0b15;border:1px solid #f59e0b30">🎛️</div><div class="feat-title">Fine-grained control</div><div class="feat-desc">Tune temperature, max tokens, top-p, and generation profiles — or pick balanced, creative, precise, or fast.</div></div>
+    <div class="feat-card"><div class="feat-icon" style="background:#3b82f615;border:1px solid #3b82f630">📜</div><div class="feat-title">History & analytics</div><div class="feat-desc">Every generation is logged with timestamps, metrics, and model info — track your usage and review past outputs.</div></div>
   </div>
-</div>
+</section>
 
-<div id="live" class="live-gen-section">
-  <div class="section-label">Live demo</div>
-  <div class="section-title">Try image generation<br>right now — no account needed</div>
-  <div class="section-sub">Type any prompt and watch AICIG generate an image in seconds via Pollinations.ai.</div>
-  <div class="live-gen-card">
-    <div class="live-input-wrap">
-      <div>
-        <div class="live-label">Image prompt</div>
-        <textarea class="live-textarea" id="demo-prompt" placeholder="A neon cyberpunk city at night with rain..." rows="3"></textarea>
+<section id="how" style="background:#ffffff03;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:100px 0;position:relative;z-index:1">
+  <div class="steps-section" style="padding:0 48px">
+    <div class="section-eyebrow">How it works</div>
+    <div class="section-h">From zero to<br>generating in minutes</div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01 <span style="color:var(--text3);font-weight:400;font-size:11px">Account</span></div>
+        <div class="step-title">Create your account</div>
+        <div class="step-desc">Sign up in under 30 seconds — username, email, password. No credit card, no subscription, ever.</div>
       </div>
-      <div>
-        <div class="live-label">Try an example</div>
-        <div class="live-examples">
-          <span class="live-example" onclick="setPrompt('A neon cyberpunk city at night')">Cyberpunk city</span>
-          <span class="live-example" onclick="setPrompt('A magical forest with glowing mushrooms')">Magic forest</span>
-          <span class="live-example" onclick="setPrompt('A futuristic space station orbiting Earth')">Space station</span>
-          <span class="live-example" onclick="setPrompt('An underwater kingdom with bioluminescent creatures')">Underwater kingdom</span>
-          <span class="live-example" onclick="setPrompt('A dragon made of crystal and light')">Crystal dragon</span>
-        </div>
+      <div class="step-card">
+        <div class="step-num">02 <span style="color:var(--text3);font-weight:400;font-size:11px">Prompt</span></div>
+        <div class="step-title">Write your prompt</div>
+        <div class="step-desc">Describe what you want — a blog post about AI, an image of a space station, or both at once.</div>
       </div>
-      <button class="live-gen-btn" id="demo-btn" onclick="demoGenerate()">Generate image</button>
-      <div class="progress-bar" id="demo-progress"><div class="progress-fill" id="demo-fill"></div></div>
-      <div class="live-status" id="demo-status"></div>
-    </div>
-    <div class="live-output">
-      <div class="live-img-frame" id="demo-frame">
-        <div class="live-img-placeholder" id="demo-placeholder">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="4" y="4" width="32" height="32" rx="6" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="14" r="3" fill="currentColor" opacity=".4"/><path d="M4 26l9-9 7 7 5-6 11 9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          <p>Your image appears here</p>
-        </div>
-        <img id="demo-img" alt="Generated image" style="width:100%;height:100%;object-fit:cover;border-radius:12px;display:none">
+      <div class="step-card">
+        <div class="step-num">03 <span style="color:var(--text3);font-weight:400;font-size:11px">Configure</span></div>
+        <div class="step-title">Choose your settings</div>
+        <div class="step-desc">Pick a model, profile, and tune the sliders — or just hit generate with the smart defaults.</div>
       </div>
-      <div id="demo-meta" style="font-size:11px;color:var(--text3);display:none"></div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Sign up for text generation, history tracking, and more →</div>
+      <div class="step-card">
+        <div class="step-num">04 <span style="color:var(--text3);font-weight:400;font-size:11px">Done</span></div>
+        <div class="step-title">Generate & review</div>
+        <div class="step-desc">Get your content instantly. Everything auto-saves to your personal history with full metrics.</div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div id="features" class="features-section">
-  <div class="section-label">Features</div>
-  <div class="section-title">Everything you need to<br>create AI content</div>
-  <div class="section-sub" style="margin-bottom:36px">A complete platform for generating text and images, tracking history, and evaluating quality.</div>
-  <div class="features-grid">
-    <div class="feature-card"><div class="fi p">✍️</div><div class="feature-title">Text generation</div><div class="feature-desc">Generate high-quality articles and blog posts using Llama 3.1 via Groq — lightning fast responses.</div></div>
-    <div class="feature-card"><div class="fi pk">🖼️</div><div class="feature-title">Image generation</div><div class="feature-desc">Create stunning AI images from prompts using Pollinations.ai — completely free, no limits at all.</div></div>
-    <div class="feature-card"><div class="fi c">⚡</div><div class="feature-title">Generate both</div><div class="feature-desc">Create text and image simultaneously from a single prompt in parallel — perfect for content creation.</div></div>
-    <div class="feature-card"><div class="fi g">📊</div><div class="feature-title">BLEU evaluation</div><div class="feature-desc">Every text generation is automatically scored with BLEU metrics to measure quality and relevance.</div></div>
-    <div class="feature-card"><div class="fi a">🎛️</div><div class="feature-title">Full control</div><div class="feature-desc">Adjust temperature, tokens, generation profiles and model selection for precise output tuning.</div></div>
-    <div class="feature-card"><div class="fi b">📜</div><div class="feature-title">History & analytics</div><div class="feature-desc">Every generation is logged. Track usage, view past outputs, and analyse your generation patterns.</div></div>
+<section class="cta-section">
+  <h2>Ready to start<br>generating?</h2>
+  <p>Join AICIG Studio today. Free forever, no credit card needed.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/signup" class="cta-main">Create free account →</a>
+    <a href="/login" class="cta-sec" style="border-color:#ffffff20;color:#9ca3af">Sign in</a>
   </div>
-</div>
-
-<div id="how" style="background:#ffffff03;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 0;position:relative;z-index:1">
-  <div class="steps-section" style="padding-top:0;padding-bottom:0">
-    <div class="section-label">How it works</div>
-    <div class="section-title">Up and running<br>in seconds</div>
-    <div class="steps">
-      <div class="step"><div class="step-num">1</div><div class="step-title">Create account</div><div class="step-desc">Sign up in seconds — no credit card, no subscription needed ever.</div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-title">Write your prompt</div><div class="step-desc">Describe what you want — a blog post, an image, or both at once.</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-title">Choose settings</div><div class="step-desc">Pick your model, profile, and parameters — or use smart defaults.</div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-title">Generate & save</div><div class="step-desc">Get your content instantly. Everything saved to your history.</div></div>
-    </div>
-  </div>
-</div>
-
-<div style="padding:80px 60px;max-width:1200px;margin:0 auto;text-align:center;position:relative;z-index:1">
-  <div class="section-title" style="margin-bottom:12px">Ready to start<br>generating?</div>
-  <p style="color:var(--text2);font-size:15px;margin-bottom:32px">Join AICIG Studio today. Free forever.</p>
-  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-    <a href="/signup" class="hero-btn-main" style="font-size:14px;padding:13px 30px">Create free account</a>
-    <a href="/login" class="hero-btn-sec" style="font-size:14px;padding:13px 30px">Sign in</a>
-  </div>
-</div>
+</section>
 
 <footer>
-  <div class="footer-logo">AICIG Studio</div>
-  <div class="footer-text">Final Year Project · Shefat Mazibar (W1967304) · University of Westminster · Supervisor: Jeffrey Ferguson</div>
+  <div class="foot-logo">
+    <div class="foot-icon">🤖</div>
+    AICIG Studio
+  </div>
+  <div class="foot-text">Final Year Project · Shefat Mazibar (W1967304) · University of Westminster · Supervisor: Jeffrey Ferguson</div>
 </footer>
 
 <script>
-/* PARTICLE SYSTEM */
-const canvas = document.getElementById('particles');
-const ctx = canvas.getContext('2d');
-let particles = [];
-let W, H;
+/* WEBGL-STYLE CANVAS BACKGROUND */
+const c = document.getElementById('bg');
+const ctx = c.getContext('2d');
+let W, H, pts = [];
+function resize(){ W = c.width = innerWidth; H = c.height = innerHeight; }
+resize(); window.addEventListener('resize', resize);
 
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', resize);
-
-class Particle {
-  constructor() { this.reset(); }
-  reset() {
-    this.x = Math.random() * W;
-    this.y = Math.random() * H;
-    this.size = Math.random() * 1.5 + 0.3;
-    this.speedX = (Math.random() - 0.5) * 0.3;
-    this.speedY = (Math.random() - 0.5) * 0.3;
-    this.opacity = Math.random() * 0.5 + 0.1;
-    this.color = Math.random() > 0.5 ? '#a855f7' : Math.random() > 0.5 ? '#ec4899' : '#06b6d4';
-    this.pulse = Math.random() * Math.PI * 2;
+class Pt {
+  constructor(){
+    this.x = Math.random()*W; this.y = Math.random()*H;
+    this.vx = (Math.random()-.5)*.25; this.vy = (Math.random()-.5)*.25;
+    this.r = Math.random()*1.2+.3;
+    this.col = ['#a855f7','#7c3aed','#ec4899','#06b6d4'][Math.floor(Math.random()*4)];
+    this.a = Math.random()*.4+.1; this.p = Math.random()*Math.PI*2;
   }
-  update() {
-    this.x += this.speedX; this.y += this.speedY;
-    this.pulse += 0.02;
-    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  tick(){
+    this.x+=this.vx; this.y+=this.vy; this.p+=.015;
+    if(this.x<0||this.x>W) this.vx*=-1;
+    if(this.y<0||this.y>H) this.vy*=-1;
   }
-  draw() {
-    ctx.globalAlpha = this.opacity * (0.7 + 0.3 * Math.sin(this.pulse));
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fill();
+  draw(){
+    ctx.globalAlpha = this.a*(0.6+0.4*Math.sin(this.p));
+    ctx.fillStyle = this.col;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill();
   }
 }
 
-for (let i = 0; i < 120; i++) particles.push(new Particle());
+for(let i=0;i<100;i++) pts.push(new Pt());
 
-function drawConnections() {
-  for (let i = 0; i < particles.length; i++) {
-    for (let j = i + 1; j < particles.length; j++) {
-      const dx = particles[i].x - particles[j].x;
-      const dy = particles[i].y - particles[j].y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 100) {
-        ctx.globalAlpha = (1 - dist/100) * 0.08;
-        ctx.strokeStyle = '#a855f7';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(particles[i].x, particles[i].y);
-        ctx.lineTo(particles[j].x, particles[j].y);
-        ctx.stroke();
-      }
+function frame(){
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<pts.length;i++){
+    for(let j=i+1;j<pts.length;j++){
+      const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.sqrt(dx*dx+dy*dy);
+      if(d<90){ ctx.globalAlpha=(1-d/90)*.06; ctx.strokeStyle='#7c3aed'; ctx.lineWidth=.5; ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
     }
   }
+  pts.forEach(p=>{ p.tick(); p.draw(); });
+  ctx.globalAlpha=1;
+  requestAnimationFrame(frame);
 }
+frame();
 
-function animateParticles() {
-  ctx.clearRect(0, 0, W, H);
-  drawConnections();
-  particles.forEach(p => { p.update(); p.draw(); });
-  ctx.globalAlpha = 1;
-  requestAnimationFrame(animateParticles);
-}
-animateParticles();
-
-/* TYPING ANIMATION */
-const phrases = [
-  'Write a blog post about AI in healthcare...',
-  'Summarise the latest machine learning trends...',
-  'Create a product description for a smartwatch...',
-  'Explain quantum computing simply...',
-];
-let phraseIdx = 0, charIdx = 0, deleting = false;
-const typingEl = document.getElementById('typing-area');
-function type() {
-  const phrase = phrases[phraseIdx];
-  if (!deleting) {
-    typingEl.innerHTML = phrase.slice(0, charIdx) + '<span class="cursor"></span>';
-    charIdx++;
-    if (charIdx > phrase.length) { deleting = true; setTimeout(type, 1800); return; }
-  } else {
-    typingEl.innerHTML = phrase.slice(0, charIdx) + '<span class="cursor"></span>';
-    charIdx--;
-    if (charIdx < 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; charIdx = 0; }
+/* COUNTER ANIMATION */
+function countUp(el, target, suffix='', duration=1800){
+  const start = performance.now();
+  const isStr = typeof target === 'string';
+  function step(now){
+    const prog = Math.min((now-start)/duration,1);
+    const ease = 1-Math.pow(1-prog,3);
+    if(isStr){ el.textContent = target; return; }
+    el.textContent = Math.round(ease*target) + suffix;
+    if(prog<1) requestAnimationFrame(step);
   }
-  setTimeout(type, deleting ? 30 : 60);
+  requestAnimationFrame(step);
 }
-type();
+const statsObs = new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting){
+    countUp(document.getElementById('sn1'),3,'');
+    countUp(document.getElementById('sn2'),100,'%');
+    countUp(document.getElementById('sn3'),2,'s');
+    document.getElementById('sn4').textContent='∞';
+    statsObs.disconnect();
+  }
+},{threshold:.5});
+statsObs.observe(document.querySelector('.stats-section'));
 
-/* PIXEL GRID ANIMATION */
-const pixelGrid = document.getElementById('pixel-grid');
-const colors = ['#a855f7','#7c3aed','#ec4899','#06b6d4','#1a1a2e','#0f0f1a'];
-for (let i = 0; i < 72; i++) {
-  const px = document.createElement('div');
-  px.className = 'pixel';
-  px.style.background = colors[Math.floor(Math.random() * colors.length)];
-  px.style.animationDelay = (Math.random() * 3) + 's';
-  px.style.animationDuration = (2 + Math.random() * 2) + 's';
-  pixelGrid.appendChild(px);
-}
-setInterval(() => {
-  document.querySelectorAll('.pixel').forEach(px => {
-    if (Math.random() > 0.7) px.style.background = colors[Math.floor(Math.random() * colors.length)];
-  });
-}, 800);
-
-/* SCROLL ANIMATION */
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }});
-}, {threshold: 0.1});
-document.querySelectorAll('.feature-card,.step,.stat-num').forEach(el => {
-  el.style.opacity='0'; el.style.transform='translateY(20px)'; el.style.transition='opacity .6s ease,transform .6s ease';
-  observer.observe(el);
+/* SCROLL REVEAL */
+const revealObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }});
+},{threshold:.1});
+document.querySelectorAll('.feat-card,.step-card').forEach(el=>{
+  el.style.opacity='0'; el.style.transform='translateY(18px)';
+  el.style.transition='opacity .55s ease, transform .55s ease';
+  revealObs.observe(el);
 });
 
-/* LIVE DEMO GENERATION */
-function setPrompt(text) {
-  document.getElementById('demo-prompt').value = text;
-}
+/* LIVE IMAGE DEMO */
+function setP(t){ document.getElementById('dp').value=t; }
 
-async function demoGenerate() {
-  const prompt = document.getElementById('demo-prompt').value.trim();
-  if (!prompt) { alert('Please enter a prompt or pick an example'); return; }
-  const btn = document.getElementById('demo-btn');
-  btn.disabled = true; btn.textContent = 'Generating...';
-  document.getElementById('demo-progress').style.display = 'block';
-  document.getElementById('demo-status').className = 'live-status active';
-  document.getElementById('demo-status').innerHTML = '<span class="spin"></span> Calling Pollinations.ai...';
-  document.getElementById('demo-img').style.display = 'none';
-  document.getElementById('demo-placeholder').style.display = 'flex';
-  document.getElementById('demo-meta').style.display = 'none';
-  let prog = 0;
-  const progInterval = setInterval(() => {
-    prog = Math.min(prog + Math.random() * 8, 90);
-    document.getElementById('demo-fill').style.width = prog + '%';
-  }, 400);
-  try {
-    const resp = await fetch('/demo_image', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt})
-    });
+async function demoGen(){
+  const prompt = document.getElementById('dp').value.trim();
+  if(!prompt){ alert('Enter a prompt or pick an example'); return; }
+  const btn = document.getElementById('dgb');
+  btn.disabled=true; btn.textContent='Generating...';
+  document.getElementById('dprog').style.display='block';
+  document.getElementById('dstat').className='demo-stat-row show';
+  document.getElementById('dstat').innerHTML='<span class="spin"></span> Calling Pollinations.ai — this takes ~5s...';
+  document.getElementById('dimg').style.display='none';
+  document.getElementById('dem').style.display='flex';
+  let prog=0;
+  const pi = setInterval(()=>{ prog=Math.min(prog+5,88); document.getElementById('dpf').style.width=prog+'%'; },400);
+  try{
+    const resp = await fetch('/demo_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
     const data = await resp.json();
-    clearInterval(progInterval);
-    document.getElementById('demo-fill').style.width = '100%';
-    if (data.image_b64) {
-      const img = document.getElementById('demo-img');
-      img.src = 'data:image/png;base64,' + data.image_b64;
-      img.style.display = 'block';
-      document.getElementById('demo-placeholder').style.display = 'none';
-      document.getElementById('demo-status').innerHTML = '✓ Generated in ' + (data.time||'') + 's — <a href="/signup" style="color:var(--purple)">Sign up for full access</a>';
-      document.getElementById('demo-meta').style.display = 'block';
+    clearInterval(pi);
+    document.getElementById('dpf').style.width='100%';
+    if(data.image_b64){
+      const img=document.getElementById('dimg');
+      img.src='data:image/png;base64,'+data.image_b64;
+      img.style.display='block';
+      document.getElementById('dem').style.display='none';
+      document.getElementById('dstat').innerHTML='✓ Generated in '+data.time+'s — <a href="/signup" style="color:#a855f7;text-decoration:none">Sign up for full access →</a>';
     } else {
-      document.getElementById('demo-status').innerHTML = 'Error: ' + (data.error || 'Unknown error');
+      document.getElementById('dstat').textContent='Error: '+(data.error||'Unknown');
     }
-  } catch(e) {
-    clearInterval(progInterval);
-    document.getElementById('demo-status').innerHTML = 'Error: ' + e.message;
-  }
-  setTimeout(() => { document.getElementById('demo-progress').style.display = 'none'; document.getElementById('demo-fill').style.width = '0%'; }, 1000);
-  btn.disabled = false; btn.textContent = 'Generate image';
+  }catch(e){ clearInterval(pi); document.getElementById('dstat').textContent='Error: '+e.message; }
+  setTimeout(()=>{ document.getElementById('dprog').style.display='none'; document.getElementById('dpf').style.width='0'; },1200);
+  btn.disabled=false; btn.textContent='Generate image →';
 }
 </script>
 </body>
