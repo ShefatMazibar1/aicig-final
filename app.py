@@ -1,21 +1,14 @@
 import os
-import requests
-import time
-import base64
 import io
-
+import base64
+import time
+import requests
 from flask import Flask, request, jsonify
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-
-# Fix for Render proxy - trust forwarded headers
-from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-hf_token = os.environ.get("HF_TOKEN", "")
-HF_SPACE_URL = "https://shef370-ai-content-generator.hf.space"
-
-# Safe imports - app works even if these fail
 try:
     from model_manager import ModelManager
     manager = ModelManager()
@@ -26,7 +19,7 @@ except Exception as e:
 
 try:
     from text_engine import TextEngine
-    text_engine = TextEngine(hf_token)
+    text_engine = TextEngine()
     print("TextEngine loaded")
 except Exception as e:
     text_engine = None
@@ -38,7 +31,6 @@ try:
     print("Evaluator loaded")
 except Exception as e:
     evaluator = None
-    print(f"Evaluator failed: {e}")
 
 try:
     from history_logger import HistoryLogger
@@ -46,9 +38,15 @@ try:
     print("HistoryLogger loaded")
 except Exception as e:
     logger = None
-    print(f"HistoryLogger failed: {e}")
 
-print(f"HF_TOKEN set: {bool(hf_token)}")
+try:
+    from image_engine import ImageEngine
+    image_engine = ImageEngine()
+    print("ImageEngine loaded")
+except Exception as e:
+    image_engine = None
+    print(f"ImageEngine failed: {e}")
+
 print("App ready")
 
 HTML = r"""<!DOCTYPE html>
@@ -68,8 +66,7 @@ header p{opacity:.8;margin-top:4px}
 .tab.active{border-bottom-color:#7c3aed;color:#fff}
 .tab:hover{color:#fff}
 .content{padding:32px 40px;max-width:1200px;margin:0 auto}
-.panel{display:none}
-.panel.active{display:block}
+.panel{display:none}.panel.active{display:block}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 @media(max-width:768px){.grid{grid-template-columns:1fr}}
 .card{background:#1e293b;border-radius:12px;padding:24px;border:1px solid #334155}
@@ -78,16 +75,14 @@ label{display:block;font-size:.85rem;color:#94a3b8;margin-bottom:6px;font-weight
 label:first-child{margin-top:0}
 textarea{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:10px 14px;font-size:.95rem;resize:vertical;min-height:100px}
 select{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:10px 14px;font-size:.9rem;cursor:pointer}
-.row{display:flex;gap:16px;margin-top:0}
-.row>div{flex:1}
+.row{display:flex;gap:16px;margin-top:0}.row>div{flex:1}
 input[type=range]{width:100%;accent-color:#7c3aed;margin-top:4px}
 button.primary{background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:1rem;font-weight:600;cursor:pointer;width:100%;margin-top:20px;transition:background .2s}
 button.primary:hover{background:#6d28d9}
 button.primary:disabled{background:#4c1d95;cursor:wait}
 .output-box{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:16px;min-height:120px;white-space:pre-wrap;font-size:.9rem;line-height:1.6;color:#cbd5e1;margin-top:16px;word-break:break-word}
 .meta{font-size:.8rem;color:#64748b;margin-top:8px}
-.error-text{color:#f87171}
-.success-text{color:#4ade80}
+.error-text{color:#f87171}.success-text{color:#4ade80}
 img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;border:1px solid #334155}
 .status{font-size:.85rem;padding:8px 12px;border-radius:6px;margin-top:12px;display:none}
 .status.loading{background:#1e3a5f;color:#93c5fd;display:block}
@@ -107,7 +102,6 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
   <div class="tab" onclick="showTab('history',this)">📊 History</div>
 </div>
 <div class="content">
-
   <div class="panel active" id="tab-text">
     <div class="grid">
       <div class="card">
@@ -115,16 +109,13 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
         <label>Prompt</label>
         <textarea id="t-prompt" placeholder="Write a blog post about AI..."></textarea>
         <div class="row" style="margin-top:14px">
-          <div>
-            <label>Model</label>
+          <div><label>Model</label>
             <select id="t-model">
               <option value="qwen-7b">Qwen 2.5 7B</option>
               <option value="llama-8b">Llama 3.1 8B</option>
-              
             </select>
           </div>
-          <div>
-            <label>Profile</label>
+          <div><label>Profile</label>
             <select id="t-profile">
               <option value="balanced">Balanced</option>
               <option value="creative">Creative</option>
@@ -155,7 +146,7 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
       <div class="card">
         <h2>Image Settings</h2>
         <label>Prompt</label>
-        <textarea id="i-prompt" placeholder="A futuristic city at sunset, highly detailed..."></textarea>
+        <textarea id="i-prompt" placeholder="A futuristic city at sunset..."></textarea>
         <label>Width: <span id="i-w-val">384</span>px</label>
         <input type="range" id="i-width" min="256" max="512" value="384" step="64"
           oninput="document.getElementById('i-w-val').textContent=this.value">
@@ -171,7 +162,7 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
       <div class="card">
         <h2>Output</h2>
         <img class="result-img" id="i-img" alt="Generated image">
-        <div class="output-box" id="i-output">Image will appear here after generation (takes 2-3 min on CPU).</div>
+        <div class="output-box" id="i-output">Image will appear here after generation.</div>
       </div>
     </div>
   </div>
@@ -183,16 +174,13 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
         <label>Prompt (used for both text and image)</label>
         <textarea id="b-prompt" placeholder="A futuristic city with flying cars..."></textarea>
         <div class="row" style="margin-top:14px">
-          <div>
-            <label>Text Model</label>
+          <div><label>Text Model</label>
             <select id="b-tmodel">
               <option value="qwen-7b">Qwen 2.5 7B</option>
               <option value="llama-8b">Llama 3.1 8B</option>
-              
             </select>
           </div>
-          <div>
-            <label>Profile</label>
+          <div><label>Profile</label>
             <select id="b-profile">
               <option value="balanced">Balanced</option>
               <option value="creative">Creative</option>
@@ -221,153 +209,124 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
       <div class="output-box" id="h-output" style="margin-top:16px">Click Refresh to load history.</div>
     </div>
   </div>
-
 </div>
+
 <script>
-function showTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+function showTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
   el.classList.add('active');
 }
-
-function setStatus(id, msg, type) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.className = 'status ' + type;
+function setStatus(id,msg,type){
+  const el=document.getElementById(id);
+  el.textContent=msg;el.className='status '+type;
 }
-
-async function generateText() {
-  const prompt = document.getElementById('t-prompt').value.trim();
-  if (!prompt) { alert('Please enter a prompt first'); return; }
-  const btn = document.getElementById('t-btn');
-  btn.disabled = true;
-  btn.textContent = 'Generating...';
-  setStatus('t-status', 'Calling HF Inference API...', 'loading');
-  document.getElementById('t-output').textContent = '';
-  document.getElementById('t-meta').textContent = '';
-  try {
-    const resp = await fetch('/generate_text', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        prompt: prompt,
-        model_key: document.getElementById('t-model').value,
-        profile: document.getElementById('t-profile').value,
-        max_tokens: parseInt(document.getElementById('t-tokens').value),
-        temperature: parseFloat(document.getElementById('t-temp').value) / 10
-      })
-    });
-    const data = await resp.json();
-    if (data.error) {
-      document.getElementById('t-output').innerHTML = '<span class="error-text">Error: ' + data.error + '</span>';
-      setStatus('t-status', 'Failed: ' + data.error, 'error');
-    } else {
-      document.getElementById('t-output').textContent = data.text;
-      document.getElementById('t-meta').textContent = data.meta || '';
-      setStatus('t-status', 'Done!', 'success');
+async function generateText(){
+  const prompt=document.getElementById('t-prompt').value.trim();
+  if(!prompt){alert('Please enter a prompt');return;}
+  const btn=document.getElementById('t-btn');
+  btn.disabled=true;btn.textContent='Generating...';
+  setStatus('t-status','Generating text...','loading');
+  document.getElementById('t-output').textContent='';
+  try{
+    const resp=await fetch('/generate_text',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,
+        model_key:document.getElementById('t-model').value,
+        profile:document.getElementById('t-profile').value,
+        max_tokens:parseInt(document.getElementById('t-tokens').value),
+        temperature:parseFloat(document.getElementById('t-temp').value)/10})});
+    const data=await resp.json();
+    if(data.error){
+      document.getElementById('t-output').innerHTML='<span class="error-text">'+data.error+'</span>';
+      setStatus('t-status','Failed','error');
+    }else{
+      document.getElementById('t-output').textContent=data.text;
+      document.getElementById('t-meta').textContent=data.meta||'';
+      setStatus('t-status','Done!','success');
     }
-  } catch(e) {
-    document.getElementById('t-output').innerHTML = '<span class="error-text">Network error: ' + e.message + '</span>';
-    setStatus('t-status', 'Network error: ' + e.message, 'error');
+  }catch(e){
+    document.getElementById('t-output').innerHTML='<span class="error-text">Network error: '+e.message+'</span>';
+    setStatus('t-status','Network error','error');
   }
-  btn.disabled = false;
-  btn.textContent = 'Generate Text';
+  btn.disabled=false;btn.textContent='Generate Text';
 }
-
-async function generateImage() {
-  const prompt = document.getElementById('i-prompt').value.trim();
-  if (!prompt) { alert('Please enter a prompt first'); return; }
-  const btn = document.getElementById('i-btn');
-  btn.disabled = true;
-  btn.textContent = 'Generating (2-3 min)...';
-  setStatus('i-status', 'Calling HF Space... CPU generation takes 2-3 minutes, please wait.', 'loading');
-  document.getElementById('i-img').style.display = 'none';
-  document.getElementById('i-output').textContent = 'Generating...';
-  try {
-    const resp = await fetch('/generate_image', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        prompt: prompt,
-        width: parseInt(document.getElementById('i-width').value),
-        height: parseInt(document.getElementById('i-height').value),
-        steps: parseInt(document.getElementById('i-steps').value)
-      })
-    });
-    const data = await resp.json();
-    if (data.image_b64) {
-      const img = document.getElementById('i-img');
-      img.src = 'data:image/png;base64,' + data.image_b64;
-      img.style.display = 'block';
-      document.getElementById('i-output').textContent = data.meta || 'Generated successfully';
-      setStatus('i-status', 'Image generated!', 'success');
-    } else {
-      document.getElementById('i-output').innerHTML = '<span class="error-text">Error: ' + (data.error || 'Unknown') + '</span>';
-      setStatus('i-status', 'Failed: ' + (data.error || 'Unknown'), 'error');
+async function generateImage(){
+  const prompt=document.getElementById('i-prompt').value.trim();
+  if(!prompt){alert('Please enter a prompt');return;}
+  const btn=document.getElementById('i-btn');
+  btn.disabled=true;btn.textContent='Generating...';
+  setStatus('i-status','Calling Pollinations.ai...','loading');
+  document.getElementById('i-img').style.display='none';
+  document.getElementById('i-output').textContent='Generating image...';
+  try{
+    const resp=await fetch('/generate_image',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,
+        width:parseInt(document.getElementById('i-width').value),
+        height:parseInt(document.getElementById('i-height').value),
+        steps:parseInt(document.getElementById('i-steps').value)})});
+    const data=await resp.json();
+    if(data.image_b64){
+      const img=document.getElementById('i-img');
+      img.src='data:image/png;base64,'+data.image_b64;
+      img.style.display='block';
+      document.getElementById('i-output').textContent=data.meta||'Generated!';
+      setStatus('i-status','Image generated!','success');
+    }else{
+      document.getElementById('i-output').innerHTML='<span class="error-text">'+(data.error||'Unknown error')+'</span>';
+      setStatus('i-status','Failed','error');
     }
-  } catch(e) {
-    document.getElementById('i-output').innerHTML = '<span class="error-text">Network error: ' + e.message + '</span>';
-    setStatus('i-status', 'Network error', 'error');
+  }catch(e){
+    setStatus('i-status','Network error','error');
   }
-  btn.disabled = false;
-  btn.textContent = 'Generate Image';
+  btn.disabled=false;btn.textContent='Generate Image';
 }
-
-async function generateBoth() {
-  const prompt = document.getElementById('b-prompt').value.trim();
-  if (!prompt) { alert('Please enter a prompt first'); return; }
-  const btn = document.getElementById('b-btn');
-  btn.disabled = true;
-  btn.textContent = 'Generating...';
-  setStatus('b-status', 'Generating text and image simultaneously...', 'loading');
-  try {
-    const [tr, ir] = await Promise.all([
-      fetch('/generate_text', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({prompt, model_key: document.getElementById('b-tmodel').value,
-          profile: document.getElementById('b-profile').value, max_tokens: 300, temperature: 0.7})
-      }),
-      fetch('/generate_image', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({prompt, width: 384, height: 384, steps: 15})
-      })
+async function generateBoth(){
+  const prompt=document.getElementById('b-prompt').value.trim();
+  if(!prompt){alert('Please enter a prompt');return;}
+  const btn=document.getElementById('b-btn');
+  btn.disabled=true;btn.textContent='Generating...';
+  setStatus('b-status','Generating text and image...','loading');
+  try{
+    const[tr,ir]=await Promise.all([
+      fetch('/generate_text',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt,model_key:document.getElementById('b-tmodel').value,
+          profile:document.getElementById('b-profile').value,max_tokens:300,temperature:0.7})}),
+      fetch('/generate_image',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt,width:384,height:384,steps:15})})
     ]);
-    const td = await tr.json();
-    const id = await ir.json();
-    document.getElementById('b-text').textContent = td.text || ('Error: ' + td.error);
-    document.getElementById('b-text-meta').textContent = td.meta || '';
-    if (id.image_b64) {
-      const img = document.getElementById('b-img');
-      img.src = 'data:image/png;base64,' + id.image_b64;
-      img.style.display = 'block';
-      document.getElementById('b-img-meta').textContent = id.meta || '';
-    } else {
-      document.getElementById('b-img-meta').textContent = 'Image error: ' + (id.error || 'Unknown');
+    const td=await tr.json();const id=await ir.json();
+    document.getElementById('b-text').textContent=td.text||('Error: '+td.error);
+    document.getElementById('b-text-meta').textContent=td.meta||'';
+    if(id.image_b64){
+      const img=document.getElementById('b-img');
+      img.src='data:image/png;base64,'+id.image_b64;
+      img.style.display='block';
+      document.getElementById('b-img-meta').textContent=id.meta||'';
+    }else{
+      document.getElementById('b-img-meta').textContent='Image error: '+(id.error||'Unknown');
     }
-    setStatus('b-status', 'Done!', 'success');
-  } catch(e) {
-    setStatus('b-status', 'Error: ' + e.message, 'error');
+    setStatus('b-status','Done!','success');
+  }catch(e){
+    setStatus('b-status','Error: '+e.message,'error');
   }
-  btn.disabled = false;
-  btn.textContent = 'Generate Both';
+  btn.disabled=false;btn.textContent='Generate Both';
 }
-
-async function loadHistory() {
-  try {
-    const resp = await fetch('/history');
-    const data = await resp.json();
-    const out = document.getElementById('h-output');
-    if (!data.entries || data.entries.length === 0) {
-      out.textContent = 'No history yet. Generate some text or images first!';
-    } else {
-      out.textContent = data.entries.map(e =>
-        '[' + e.type.toUpperCase() + '] ' + e.timestamp.slice(0,19) + ' | ' + e.model + '\n> ' + e.prompt.slice(0,120)
+async function loadHistory(){
+  try{
+    const resp=await fetch('/history');
+    const data=await resp.json();
+    const out=document.getElementById('h-output');
+    if(!data.entries||data.entries.length===0){
+      out.textContent='No history yet.';
+    }else{
+      out.textContent=data.entries.map(e=>
+        '['+e.type.toUpperCase()+'] '+e.timestamp.slice(0,19)+' | '+e.model+'\n> '+e.prompt.slice(0,120)
       ).join('\n\n');
     }
-  } catch(e) {
-    document.getElementById('h-output').textContent = 'Error loading history: ' + e.message;
-  }
+  }catch(e){document.getElementById('h-output').textContent='Error: '+e.message;}
 }
 </script>
 </body>
@@ -384,12 +343,10 @@ def api_generate_text():
         prompt = (data.get("prompt") or "").strip()
         if not prompt:
             return jsonify({"error": "No prompt provided"})
-        if not hf_token:
-            return jsonify({"error": "HF_TOKEN not set in environment variables"})
         if not text_engine:
-            return jsonify({"error": "TextEngine failed to load - check server logs"})
+            return jsonify({"error": "TextEngine not loaded"})
         if not manager:
-            return jsonify({"error": "ModelManager failed to load - check server logs"})
+            return jsonify({"error": "ModelManager not loaded"})
 
         model_key = data.get("model_key", "qwen-7b")
         profile_name = data.get("profile", "balanced")
@@ -401,7 +358,6 @@ def api_generate_text():
         params.update({"max_tokens": max_tokens, "temperature": temperature})
 
         text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
-
         if text.startswith("Error:"):
             return jsonify({"error": text})
 
@@ -411,7 +367,6 @@ def api_generate_text():
                 bleu = evaluator.bleu_score(prompt, text)
             except Exception:
                 pass
-
         if logger:
             try:
                 logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
@@ -423,8 +378,6 @@ def api_generate_text():
             "meta": f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s | Model: {config['model_id']}"
         })
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return jsonify({"error": str(e)})
 
 @app.route("/generate_image", methods=["POST"])
@@ -434,48 +387,36 @@ def api_generate_image():
         prompt = (data.get("prompt") or "").strip()
         if not prompt:
             return jsonify({"error": "No prompt provided"})
+        if not image_engine:
+            return jsonify({"error": "ImageEngine not loaded"})
 
         width = int(data.get("width", 384))
         height = int(data.get("height", 384))
         steps = int(data.get("steps", 15))
-        enhanced = prompt + ", highly detailed, high quality, sharp focus"
 
-        start = time.time()
-        api_url = f"{HF_SPACE_URL}/run/predict"
-        payload = {"fn_index": 0, "data": [enhanced, width, height, steps], "session_hash": "aicig"}
+        image, elapsed, message = image_engine.generate(prompt, width=width, height=height, steps=steps)
 
-        resp = requests.post(api_url, json=payload, timeout=300)
-        elapsed = time.time() - start
-
-        if resp.status_code == 200:
-            result = resp.json()
-            if "data" in result and result["data"] and result["data"][0]:
-                image_data = result["data"][0]
-                if isinstance(image_data, str):
-                    if "," in image_data:
-                        image_data = image_data.split(",", 1)[1]
-                    if logger:
-                        try:
-                            logger.log("image", prompt, "generated", "hf-space", {}, {"time": elapsed})
-                        except Exception:
-                            pass
-                    return jsonify({"image_b64": image_data, "meta": f"Generated in {elapsed:.1f}s via HF Space"})
-            return jsonify({"error": f"No image in response. Raw: {str(result)[:300]}"})
+        if image is not None:
+            buf = io.BytesIO()
+            image.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode()
+            if logger:
+                try:
+                    logger.log("image", prompt, "generated", "pollinations", {}, {"time": elapsed})
+                except Exception:
+                    pass
+            return jsonify({"image_b64": b64, "meta": f"Generated in {elapsed:.1f}s via Pollinations.ai"})
         else:
-            return jsonify({"error": f"HF Space HTTP {resp.status_code}: {resp.text[:200]}"})
+            return jsonify({"error": message})
 
-    except requests.Timeout:
-        return jsonify({"error": "HF Space timed out. CPU generation takes 2-3 min. Try again."})
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return jsonify({"error": str(e)})
 
 @app.route("/history")
 def api_history():
     try:
         if not logger:
-            return jsonify({"entries": [], "error": "HistoryLogger not loaded"})
+            return jsonify({"entries": []})
         entries = logger.get_history(20)
         return jsonify({"entries": list(reversed(entries)) if entries else []})
     except Exception as e:
@@ -485,14 +426,11 @@ def api_history():
 def health():
     return jsonify({
         "status": "ok",
-        "hf_token_set": bool(hf_token),
-        "manager": manager is not None,
         "text_engine": text_engine is not None,
-        "evaluator": evaluator is not None,
-        "logger": logger is not None
+        "image_engine": image_engine is not None,
+        "manager": manager is not None,
     })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    print(f"Starting on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
