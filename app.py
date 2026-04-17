@@ -84,7 +84,7 @@ html{scroll-behavior:smooth}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 60px;display:flex;align-items:center;justify-content:space-between;background:#08080fcc;backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 60px;display:flex;align-items:center;justify-content:space-between;background:#08080fcc;backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:all .3s}
 .nav-logo{font-size:18px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .nav-links{display:flex;align-items:center;gap:32px}
 .nav-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .15s}
@@ -95,95 +95,145 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 60px;display:fl
 .btn-primary{padding:8px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:none;font-weight:600;transition:opacity .15s}
 .btn-primary:hover{opacity:.85}
 
+/* CANVAS */
+#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
 /* HERO */
-.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
-.hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,#7c3aed25,transparent 70%);top:50%;left:50%;transform:translate(-50%,-60%);pointer-events:none}
-.hero-glow2{position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,#ec489918,transparent 70%);top:60%;left:30%;pointer-events:none}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid #a855f740;border-radius:99px;font-size:11px;color:var(--purple);background:#a855f710;margin-bottom:28px}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border:1px solid #a855f740;border-radius:99px;font-size:11px;color:var(--purple);background:#a855f710;margin-bottom:28px;animation:fadeUp .8s ease both}
 .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);box-shadow:0 0 8px var(--purple);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.hero h1{font-size:clamp(36px,6vw,72px);font-weight:700;line-height:1.1;margin-bottom:20px;letter-spacing:-.02em}
-.hero h1 .grad{background:linear-gradient(90deg,var(--purple),var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero p{font-size:17px;color:var(--text2);max-width:540px;line-height:1.7;margin-bottom:40px}
-.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
-.hero-btn-main{padding:14px 32px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;transition:transform .1s,opacity .15s;display:inline-flex;align-items:center;gap:8px}
-.hero-btn-main:hover{opacity:.9;transform:translateY(-1px)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp2{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero h1{font-size:clamp(36px,6vw,72px);font-weight:700;line-height:1.1;margin-bottom:20px;letter-spacing:-.02em;animation:fadeUp .8s .1s ease both}
+.hero h1 .grad{background:linear-gradient(90deg,var(--purple),var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:gradShift 4s infinite linear}
+@keyframes gradShift{0%{background-position:0%}100%{background-position:200%}}
+.hero p{font-size:17px;color:var(--text2);max-width:540px;line-height:1.7;margin-bottom:40px;animation:fadeUp .8s .2s ease both}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s .3s ease both}
+.hero-btn-main{padding:14px 32px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;transition:transform .1s,opacity .15s,box-shadow .2s;display:inline-flex;align-items:center;gap:8px}
+.hero-btn-main:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 30px #7c3aed40}
 .hero-btn-sec{padding:14px 32px;border:1px solid var(--border2);border-radius:10px;background:transparent;color:var(--text);font-size:15px;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .15s}
-.hero-btn-sec:hover{border-color:var(--purple);color:var(--purple)}
-.hero-sub{margin-top:32px;font-size:12px;color:var(--text3)}
+.hero-btn-sec:hover{border-color:var(--purple);color:var(--purple);box-shadow:0 0 20px #a855f720}
+.hero-sub{margin-top:24px;font-size:12px;color:var(--text3);animation:fadeUp .8s .4s ease both}
+
+/* LIVE DEMO */
+.live-demo{margin-top:56px;width:100%;max-width:780px;animation:fadeUp .8s .5s ease both}
+.demo-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:center}
+.demo-dot{width:5px;height:5px;border-radius:50%;background:var(--green,#10b981);animation:pulse 1.5s infinite}
+.demo-frame{background:#0f0f1a;border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 0 60px #7c3aed18,0 0 120px #ec489908}
+.demo-bar{background:#1a1a2e;padding:10px 16px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border)}
+.demo-dot-r{width:9px;height:9px;border-radius:50%;background:#ff5f57}
+.demo-dot-y{width:9px;height:9px;border-radius:50%;background:#febc2e}
+.demo-dot-g{width:9px;height:9px;border-radius:50%;background:#28c840}
+.demo-url{flex:1;background:#0f0f1a;border-radius:5px;padding:3px 12px;font-size:10px;color:var(--text3);margin:0 10px}
+.demo-body{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:260px}
+.demo-left{display:flex;flex-direction:column;gap:10px}
+.demo-card{background:#ffffff06;border:1px solid var(--border);border-radius:10px;padding:12px}
+.demo-input-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.demo-textarea{width:100%;height:52px;background:#1a1a2e;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:10px;color:var(--text2);font-family:inherit;resize:none;outline:none}
+.demo-btn{width:100%;padding:7px;border:none;border-radius:6px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:10px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.demo-right{background:#ffffff04;border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column}
+.demo-out-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.demo-lines{flex:1;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.demo-line{height:4px;border-radius:2px;background:#a855f720;animation:shimmer 2s infinite}
+.demo-line:nth-child(2){animation-delay:.2s;width:88%}
+.demo-line:nth-child(3){animation-delay:.4s;width:94%}
+.demo-line:nth-child(4){animation-delay:.6s;width:75%}
+.demo-line:nth-child(5){animation-delay:.8s;width:90%}
+.demo-line:nth-child(6){animation-delay:1s;width:82%}
+@keyframes shimmer{0%,100%{opacity:.4;background:#a855f720}50%{opacity:1;background:#a855f750}}
+.demo-img-preview{height:90px;background:#1a1a2e;border-radius:6px;overflow:hidden;position:relative;margin-top:8px}
+.demo-img-scan{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),var(--pink),transparent);animation:scan 2s infinite linear}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.demo-img-pixels{width:100%;height:100%;display:grid;grid-template-columns:repeat(12,1fr);gap:1px;padding:4px}
+.pixel{border-radius:1px;animation:pixelate 3s infinite}
+@keyframes pixelate{0%,100%{opacity:.2}50%{opacity:.8}}
+
+/* TYPING DEMO */
+.typing-area{min-height:32px;font-size:10px;color:var(--cyan);font-family:monospace;line-height:1.5}
+.cursor{display:inline-block;width:7px;height:11px;background:var(--cyan);margin-left:1px;animation:blink .8s infinite}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+/* LIVE IMAGE GEN SECTION */
+.live-gen-section{padding:80px 60px;max-width:1200px;margin:0 auto;position:relative;z-index:1}
+.section-label{font-size:11px;color:var(--purple);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+.section-title{font-size:clamp(26px,4vw,40px);font-weight:700;line-height:1.2;margin-bottom:12px}
+.section-sub{font-size:15px;color:var(--text2);max-width:500px;line-height:1.7;margin-bottom:36px}
+.live-gen-card{background:#ffffff06;border:1px solid var(--border);border-radius:20px;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:24px;position:relative;overflow:hidden}
+.live-gen-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--pink)60,transparent)}
+.live-input-wrap{display:flex;flex-direction:column;gap:14px}
+.live-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.live-textarea{width:100%;background:#1a1a2e;border:1px solid var(--border2);border-radius:10px;padding:12px;font-size:13px;font-family:inherit;color:var(--text);resize:none;min-height:80px;outline:none;line-height:1.5}
+.live-textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px #a855f715}
+.live-examples{display:flex;flex-wrap:wrap;gap:6px}
+.live-example{font-size:11px;padding:4px 10px;border:1px solid var(--border2);border-radius:99px;color:var(--text3);cursor:pointer;transition:all .15s}
+.live-example:hover{border-color:var(--purple);color:var(--purple)}
+.live-gen-btn{padding:12px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;width:100%}
+.live-gen-btn:hover{opacity:.88;transform:translateY(-1px)}
+.live-gen-btn:disabled{opacity:.45;cursor:wait;transform:none}
+.live-output{display:flex;flex-direction:column;gap:12px}
+.live-img-frame{width:100%;aspect-ratio:1;background:#0f0f1a;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.live-img-frame img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:none}
+.live-img-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text3)}
+.live-img-placeholder svg{opacity:.3}
+.live-img-placeholder p{font-size:12px}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:2px;width:0%;transition:width .5s}
+.live-status{font-size:12px;color:var(--text3);display:none;align-items:center;gap:6px}
+.live-status.active{display:flex}
+.spin{width:10px;height:10px;border:1.5px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* FEATURES */
-.section{padding:80px 60px;max-width:1200px;margin:0 auto}
-.section-label{font-size:11px;color:var(--purple);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
-.section-title{font-size:clamp(28px,4vw,42px);font-weight:700;line-height:1.2;margin-bottom:16px}
-.section-sub{font-size:15px;color:var(--text2);max-width:500px;line-height:1.7;margin-bottom:48px}
+.features-section{padding:80px 60px;max-width:1200px;margin:0 auto;position:relative;z-index:1}
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 @media(max-width:768px){.features-grid{grid-template-columns:1fr}}
-.feature-card{background:#ffffff06;border:1px solid var(--border);border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
-.feature-card:hover{border-color:#a855f740;transform:translateY(-2px)}
-.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--purple)50,transparent);opacity:0;transition:opacity .2s}
-.feature-card:hover::before{opacity:1}
-.feature-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:18px}
-.icon-purple{background:#a855f715;border:1px solid #a855f730}
-.icon-pink{background:#ec489915;border:1px solid #ec489930}
-.icon-cyan{background:#06b6d415;border:1px solid #06b6d430}
-.icon-green{background:#10b98115;border:1px solid #10b98130}
-.icon-amber{background:#f59e0b15;border:1px solid #f59e0b30}
-.icon-blue{background:#3b82f615;border:1px solid #3b82f630}
-.feature-title{font-size:15px;font-weight:600;margin-bottom:8px}
-.feature-desc{font-size:13px;color:var(--text2);line-height:1.6}
-
-/* HOW IT WORKS */
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;margin-top:48px}
-@media(max-width:768px){.steps{grid-template-columns:1fr;gap:20px}}
-.steps::before{content:'';position:absolute;top:24px;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,var(--purple)40,var(--pink)60,transparent);pointer-events:none}
-@media(max-width:768px){.steps::before{display:none}}
-.step{text-align:center;padding:0 20px}
-.step-num{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 20px #7c3aed40}
-.step-title{font-size:14px;font-weight:600;margin-bottom:6px}
-.step-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.feature-card{background:#ffffff06;border:1px solid var(--border);border-radius:16px;padding:24px;transition:all .25s;cursor:default}
+.feature-card:hover{border-color:#a855f740;transform:translateY(-3px);box-shadow:0 12px 40px #7c3aed15}
+.feature-card::before{content:'';display:block;width:36px;height:36px;border-radius:9px;margin-bottom:14px;font-size:16px;display:flex;align-items:center;justify-content:center}
+.fi{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;margin-bottom:14px;font-size:16px}
+.fi.p{background:#a855f715;border:1px solid #a855f730}
+.fi.pk{background:#ec489915;border:1px solid #ec489930}
+.fi.c{background:#06b6d415;border:1px solid #06b6d430}
+.fi.g{background:#10b98115;border:1px solid #10b98130}
+.fi.a{background:#f59e0b15;border:1px solid #f59e0b30}
+.fi.b{background:#3b82f615;border:1px solid #3b82f630}
+.feature-title{font-size:14px;font-weight:600;margin-bottom:7px}
+.feature-desc{font-size:12px;color:var(--text2);line-height:1.6}
 
 /* STATS */
-.stats-section{padding:60px;background:#ffffff04;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.stats-bar{background:#ffffff04;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:48px 60px;position:relative;z-index:1}
 .stats-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;text-align:center}
-@media(max-width:768px){.stats-inner{grid-template-columns:repeat(2,1fr)}}
-.stat-num{font-size:36px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-num{font-size:34px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .stat-label{font-size:12px;color:var(--text3);margin-top:4px}
 
+/* STEPS */
+.steps-section{padding:80px 60px;max-width:1200px;margin:0 auto;position:relative;z-index:1}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;margin-top:48px}
+@media(max-width:768px){.steps{grid-template-columns:1fr;gap:20px}}
+.steps::before{content:'';position:absolute;top:24px;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,var(--purple)40,var(--pink)60,transparent)}
+@media(max-width:768px){.steps::before{display:none}}
+.step{text-align:center;padding:0 16px}
+.step-num{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 0 24px #7c3aed40;transition:transform .2s}
+.step:hover .step-num{transform:scale(1.1)}
+.step-title{font-size:13px;font-weight:600;margin-bottom:6px}
+.step-desc{font-size:12px;color:var(--text2);line-height:1.6}
+
 /* FOOTER */
-footer{padding:40px 60px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
 .footer-logo{font-size:15px;font-weight:700;background:linear-gradient(90deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .footer-text{font-size:12px;color:var(--text3)}
-
-/* PREVIEW MOCKUP */
-.mockup-wrap{margin-top:60px;position:relative;max-width:800px;width:100%}
-.mockup-frame{background:#0f0f1a;border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 0 80px #7c3aed20,0 0 160px #ec489910}
-.mockup-bar{background:#1a1a2e;padding:10px 16px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border)}
-.mockup-dot{width:10px;height:10px;border-radius:50%}
-.mockup-url{flex:1;background:#0f0f1a;border-radius:6px;padding:4px 12px;font-size:10px;color:var(--text3);margin:0 12px}
-.mockup-body{padding:20px;display:grid;grid-template-columns:160px 1fr;gap:12px;min-height:220px}
-.mock-sidebar{background:#ffffff05;border-radius:10px;padding:12px}
-.mock-logo{height:8px;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:4px;width:70%;margin-bottom:14px}
-.mock-nav{height:6px;background:#ffffff10;border-radius:3px;margin-bottom:8px;width:90%}
-.mock-nav.active{background:#a855f740;width:85%}
-.mock-main{display:flex;flex-direction:column;gap:10px}
-.mock-card{background:#ffffff06;border:1px solid var(--border);border-radius:8px;padding:12px}
-.mock-line{height:5px;background:#ffffff10;border-radius:3px;margin-bottom:6px}
-.mock-line.short{width:60%}
-.mock-line.med{width:80%}
-.mock-btn{height:24px;background:linear-gradient(90deg,var(--purple2),var(--pink));border-radius:6px;margin-top:8px;width:100%}
-.mock-output{background:#ffffff04;border-radius:6px;padding:10px;flex:1}
-.mock-out-line{height:4px;background:#a855f720;border-radius:2px;margin-bottom:5px}
 </style>
 </head>
 <body>
+<canvas id="particles"></canvas>
 
 <nav>
   <div class="nav-logo">AICIG Studio</div>
   <div class="nav-links">
     <a href="#features">Features</a>
+    <a href="#live">Try it live</a>
     <a href="#how">How it works</a>
-    <a href="#about">About</a>
   </div>
   <div class="nav-cta">
     <a href="/login" class="btn-outline">Sign in</a>
@@ -192,49 +242,49 @@ footer{padding:40px 60px;border-top:1px solid var(--border);display:flex;align-i
 </nav>
 
 <div class="hero">
-  <div class="hero-glow"></div>
-  <div class="hero-glow2"></div>
   <div class="hero-badge"><span class="badge-dot"></span>Final Year Project · University of Westminster</div>
   <h1>Generate content &amp;<br><span class="grad">images with AI</span></h1>
-  <p>AICIG Studio combines state-of-the-art language models with AI image generation — all in one powerful, free platform.</p>
+  <p>AICIG Studio combines fast language models with AI image generation — completely free, open source, and built for everyone.</p>
   <div class="hero-btns">
     <a href="/signup" class="hero-btn-main">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
       Start for free
     </a>
     <a href="/login" class="hero-btn-sec">Sign in</a>
   </div>
-  <div class="hero-sub">No credit card required · Free forever · Open source</div>
+  <div class="hero-sub">No credit card · Free forever · Open source</div>
 
-  <div class="mockup-wrap">
-    <div class="mockup-frame">
-      <div class="mockup-bar">
-        <div class="mockup-dot" style="background:#ff5f57"></div>
-        <div class="mockup-dot" style="background:#febc2e"></div>
-        <div class="mockup-dot" style="background:#28c840"></div>
-        <div class="mockup-url">aicig-final.onrender.com/app</div>
+  <div class="live-demo">
+    <div class="demo-label"><span class="demo-dot" style="background:#10b981"></span>Live preview</div>
+    <div class="demo-frame">
+      <div class="demo-bar">
+        <div class="demo-dot-r"></div><div class="demo-dot-y"></div><div class="demo-dot-g"></div>
+        <div class="demo-url">aicig-final.onrender.com/app</div>
       </div>
-      <div class="mockup-body">
-        <div class="mock-sidebar">
-          <div class="mock-logo"></div>
-          <div class="mock-nav active"></div>
-          <div class="mock-nav"></div>
-          <div class="mock-nav"></div>
-          <div class="mock-nav" style="margin-top:20px"></div>
-        </div>
-        <div class="mock-main">
-          <div class="mock-card">
-            <div class="mock-line med"></div>
-            <div class="mock-line"></div>
-            <div class="mock-line short"></div>
-            <div class="mock-btn"></div>
+      <div class="demo-body">
+        <div class="demo-left">
+          <div class="demo-card">
+            <div class="demo-input-label">Prompt</div>
+            <div class="typing-area" id="typing-area"></div>
+            <div class="demo-btn">Generate text</div>
           </div>
-          <div class="mock-output">
-            <div class="mock-out-line" style="width:95%"></div>
-            <div class="mock-out-line" style="width:88%"></div>
-            <div class="mock-out-line" style="width:92%"></div>
-            <div class="mock-out-line" style="width:75%"></div>
-            <div class="mock-out-line" style="width:85%"></div>
+          <div class="demo-card" style="flex:1">
+            <div class="demo-input-label">Image prompt</div>
+            <div class="demo-img-preview">
+              <div class="demo-img-scan"></div>
+              <div class="demo-img-pixels" id="pixel-grid"></div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-right">
+          <div class="demo-out-label">Output</div>
+          <div class="demo-lines">
+            <div class="demo-line"></div>
+            <div class="demo-line"></div>
+            <div class="demo-line"></div>
+            <div class="demo-line"></div>
+            <div class="demo-line"></div>
+            <div class="demo-line"></div>
           </div>
         </div>
       </div>
@@ -242,89 +292,86 @@ footer{padding:40px 60px;border-top:1px solid var(--border);display:flex;align-i
   </div>
 </div>
 
-<div class="stats-section">
+<div class="stats-bar">
   <div class="stats-inner">
-    <div><div class="stat-num">3+</div><div class="stat-label">AI models supported</div></div>
-    <div><div class="stat-num">100%</div><div class="stat-label">Free to use</div></div>
+    <div><div class="stat-num">3+</div><div class="stat-label">AI models</div></div>
+    <div><div class="stat-num">100%</div><div class="stat-label">Free</div></div>
     <div><div class="stat-num">2</div><div class="stat-label">Generation modes</div></div>
-    <div><div class="stat-num">0</div><div class="stat-label">Cost to get started</div></div>
+    <div><div class="stat-num">∞</div><div class="stat-label">Generations</div></div>
   </div>
 </div>
 
-<div id="features" class="section">
+<div id="live" class="live-gen-section">
+  <div class="section-label">Live demo</div>
+  <div class="section-title">Try image generation<br>right now — no account needed</div>
+  <div class="section-sub">Type any prompt and watch AICIG generate an image in seconds via Pollinations.ai.</div>
+  <div class="live-gen-card">
+    <div class="live-input-wrap">
+      <div>
+        <div class="live-label">Image prompt</div>
+        <textarea class="live-textarea" id="demo-prompt" placeholder="A neon cyberpunk city at night with rain..." rows="3"></textarea>
+      </div>
+      <div>
+        <div class="live-label">Try an example</div>
+        <div class="live-examples">
+          <span class="live-example" onclick="setPrompt('A neon cyberpunk city at night')">Cyberpunk city</span>
+          <span class="live-example" onclick="setPrompt('A magical forest with glowing mushrooms')">Magic forest</span>
+          <span class="live-example" onclick="setPrompt('A futuristic space station orbiting Earth')">Space station</span>
+          <span class="live-example" onclick="setPrompt('An underwater kingdom with bioluminescent creatures')">Underwater kingdom</span>
+          <span class="live-example" onclick="setPrompt('A dragon made of crystal and light')">Crystal dragon</span>
+        </div>
+      </div>
+      <button class="live-gen-btn" id="demo-btn" onclick="demoGenerate()">Generate image</button>
+      <div class="progress-bar" id="demo-progress"><div class="progress-fill" id="demo-fill"></div></div>
+      <div class="live-status" id="demo-status"></div>
+    </div>
+    <div class="live-output">
+      <div class="live-img-frame" id="demo-frame">
+        <div class="live-img-placeholder" id="demo-placeholder">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="4" y="4" width="32" height="32" rx="6" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="14" r="3" fill="currentColor" opacity=".4"/><path d="M4 26l9-9 7 7 5-6 11 9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <p>Your image appears here</p>
+        </div>
+        <img id="demo-img" alt="Generated image" style="width:100%;height:100%;object-fit:cover;border-radius:12px;display:none">
+      </div>
+      <div id="demo-meta" style="font-size:11px;color:var(--text3);display:none"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Sign up for text generation, history tracking, and more →</div>
+    </div>
+  </div>
+</div>
+
+<div id="features" class="features-section">
   <div class="section-label">Features</div>
   <div class="section-title">Everything you need to<br>create AI content</div>
-  <div class="section-sub">A complete platform for generating text and images, tracking history, and evaluating quality — all in one place.</div>
+  <div class="section-sub" style="margin-bottom:36px">A complete platform for generating text and images, tracking history, and evaluating quality.</div>
   <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon icon-purple">✍️</div>
-      <div class="feature-title">Text generation</div>
-      <div class="feature-desc">Generate high-quality articles, blog posts, summaries and more using Llama 3.1 via Groq — lightning fast.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-pink">🖼️</div>
-      <div class="feature-title">Image generation</div>
-      <div class="feature-desc">Create stunning AI-generated images from text prompts using Pollinations.ai — completely free, no limits.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-cyan">⚡</div>
-      <div class="feature-title">Generate both</div>
-      <div class="feature-desc">Create text and image simultaneously from a single prompt — perfect for content creation workflows.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-green">📊</div>
-      <div class="feature-title">BLEU evaluation</div>
-      <div class="feature-desc">Every text generation is automatically scored using BLEU metrics to measure quality and relevance.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-amber">🎛️</div>
-      <div class="feature-title">Full control</div>
-      <div class="feature-desc">Adjust temperature, token count, generation profiles and model selection for precise output control.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-blue">📜</div>
-      <div class="feature-title">History &amp; analytics</div>
-      <div class="feature-desc">Every generation is logged with timestamps, metrics and model info. Track your usage over time.</div>
-    </div>
+    <div class="feature-card"><div class="fi p">✍️</div><div class="feature-title">Text generation</div><div class="feature-desc">Generate high-quality articles and blog posts using Llama 3.1 via Groq — lightning fast responses.</div></div>
+    <div class="feature-card"><div class="fi pk">🖼️</div><div class="feature-title">Image generation</div><div class="feature-desc">Create stunning AI images from prompts using Pollinations.ai — completely free, no limits at all.</div></div>
+    <div class="feature-card"><div class="fi c">⚡</div><div class="feature-title">Generate both</div><div class="feature-desc">Create text and image simultaneously from a single prompt in parallel — perfect for content creation.</div></div>
+    <div class="feature-card"><div class="fi g">📊</div><div class="feature-title">BLEU evaluation</div><div class="feature-desc">Every text generation is automatically scored with BLEU metrics to measure quality and relevance.</div></div>
+    <div class="feature-card"><div class="fi a">🎛️</div><div class="feature-title">Full control</div><div class="feature-desc">Adjust temperature, tokens, generation profiles and model selection for precise output tuning.</div></div>
+    <div class="feature-card"><div class="fi b">📜</div><div class="feature-title">History & analytics</div><div class="feature-desc">Every generation is logged. Track usage, view past outputs, and analyse your generation patterns.</div></div>
   </div>
 </div>
 
-<div id="how" style="background:#ffffff03;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 0">
-  <div class="section" style="padding-top:0;padding-bottom:0">
+<div id="how" style="background:#ffffff03;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 0;position:relative;z-index:1">
+  <div class="steps-section" style="padding-top:0;padding-bottom:0">
     <div class="section-label">How it works</div>
-    <div class="section-title">Three steps to<br>your content</div>
+    <div class="section-title">Up and running<br>in seconds</div>
     <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-title">Create account</div>
-        <div class="step-desc">Sign up in seconds — no credit card, no subscription. Just a username and password.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-title">Write your prompt</div>
-        <div class="step-desc">Describe what you want to generate — a blog post, an image, or both at once.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-title">Choose settings</div>
-        <div class="step-desc">Pick your model, profile, and parameters — or use the smart defaults.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-title">Generate &amp; save</div>
-        <div class="step-desc">Get your content instantly. Everything is saved to your personal history.</div>
-      </div>
+      <div class="step"><div class="step-num">1</div><div class="step-title">Create account</div><div class="step-desc">Sign up in seconds — no credit card, no subscription needed ever.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-title">Write your prompt</div><div class="step-desc">Describe what you want — a blog post, an image, or both at once.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-title">Choose settings</div><div class="step-desc">Pick your model, profile, and parameters — or use smart defaults.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-title">Generate & save</div><div class="step-desc">Get your content instantly. Everything saved to your history.</div></div>
     </div>
   </div>
 </div>
 
-<div id="about" class="section">
-  <div class="section-label">About</div>
-  <div class="section-title">Built for research,<br>designed for everyone</div>
-  <div class="section-sub">AICIG Studio is a Final Year Project at the University of Westminster, exploring AI content generation systems. Built with Flask, Groq, and Pollinations.ai.</div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap">
-    <a href="/signup" class="hero-btn-main" style="font-size:14px;padding:12px 28px">Create free account</a>
-    <a href="/login" class="hero-btn-sec" style="font-size:14px;padding:12px 28px">Sign in</a>
+<div style="padding:80px 60px;max-width:1200px;margin:0 auto;text-align:center;position:relative;z-index:1">
+  <div class="section-title" style="margin-bottom:12px">Ready to start<br>generating?</div>
+  <p style="color:var(--text2);font-size:15px;margin-bottom:32px">Join AICIG Studio today. Free forever.</p>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a href="/signup" class="hero-btn-main" style="font-size:14px;padding:13px 30px">Create free account</a>
+    <a href="/login" class="hero-btn-sec" style="font-size:14px;padding:13px 30px">Sign in</a>
   </div>
 </div>
 
@@ -333,8 +380,177 @@ footer{padding:40px 60px;border-top:1px solid var(--border);display:flex;align-i
   <div class="footer-text">Final Year Project · Shefat Mazibar (W1967304) · University of Westminster · Supervisor: Jeffrey Ferguson</div>
 </footer>
 
+<script>
+/* PARTICLE SYSTEM */
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.color = Math.random() > 0.5 ? '#a855f7' : Math.random() > 0.5 ? '#ec4899' : '#06b6d4';
+    this.pulse = Math.random() * Math.PI * 2;
+  }
+  update() {
+    this.x += this.speedX; this.y += this.speedY;
+    this.pulse += 0.02;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  }
+  draw() {
+    ctx.globalAlpha = this.opacity * (0.7 + 0.3 * Math.sin(this.pulse));
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function drawConnections() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 100) {
+        ctx.globalAlpha = (1 - dist/100) * 0.08;
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, W, H);
+  drawConnections();
+  particles.forEach(p => { p.update(); p.draw(); });
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+/* TYPING ANIMATION */
+const phrases = [
+  'Write a blog post about AI in healthcare...',
+  'Summarise the latest machine learning trends...',
+  'Create a product description for a smartwatch...',
+  'Explain quantum computing simply...',
+];
+let phraseIdx = 0, charIdx = 0, deleting = false;
+const typingEl = document.getElementById('typing-area');
+function type() {
+  const phrase = phrases[phraseIdx];
+  if (!deleting) {
+    typingEl.innerHTML = phrase.slice(0, charIdx) + '<span class="cursor"></span>';
+    charIdx++;
+    if (charIdx > phrase.length) { deleting = true; setTimeout(type, 1800); return; }
+  } else {
+    typingEl.innerHTML = phrase.slice(0, charIdx) + '<span class="cursor"></span>';
+    charIdx--;
+    if (charIdx < 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; charIdx = 0; }
+  }
+  setTimeout(type, deleting ? 30 : 60);
+}
+type();
+
+/* PIXEL GRID ANIMATION */
+const pixelGrid = document.getElementById('pixel-grid');
+const colors = ['#a855f7','#7c3aed','#ec4899','#06b6d4','#1a1a2e','#0f0f1a'];
+for (let i = 0; i < 72; i++) {
+  const px = document.createElement('div');
+  px.className = 'pixel';
+  px.style.background = colors[Math.floor(Math.random() * colors.length)];
+  px.style.animationDelay = (Math.random() * 3) + 's';
+  px.style.animationDuration = (2 + Math.random() * 2) + 's';
+  pixelGrid.appendChild(px);
+}
+setInterval(() => {
+  document.querySelectorAll('.pixel').forEach(px => {
+    if (Math.random() > 0.7) px.style.background = colors[Math.floor(Math.random() * colors.length)];
+  });
+}, 800);
+
+/* SCROLL ANIMATION */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }});
+}, {threshold: 0.1});
+document.querySelectorAll('.feature-card,.step,.stat-num').forEach(el => {
+  el.style.opacity='0'; el.style.transform='translateY(20px)'; el.style.transition='opacity .6s ease,transform .6s ease';
+  observer.observe(el);
+});
+
+/* LIVE DEMO GENERATION */
+function setPrompt(text) {
+  document.getElementById('demo-prompt').value = text;
+}
+
+async function demoGenerate() {
+  const prompt = document.getElementById('demo-prompt').value.trim();
+  if (!prompt) { alert('Please enter a prompt or pick an example'); return; }
+  const btn = document.getElementById('demo-btn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  document.getElementById('demo-progress').style.display = 'block';
+  document.getElementById('demo-status').className = 'live-status active';
+  document.getElementById('demo-status').innerHTML = '<span class="spin"></span> Calling Pollinations.ai...';
+  document.getElementById('demo-img').style.display = 'none';
+  document.getElementById('demo-placeholder').style.display = 'flex';
+  document.getElementById('demo-meta').style.display = 'none';
+  let prog = 0;
+  const progInterval = setInterval(() => {
+    prog = Math.min(prog + Math.random() * 8, 90);
+    document.getElementById('demo-fill').style.width = prog + '%';
+  }, 400);
+  try {
+    const resp = await fetch('/demo_image', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt})
+    });
+    const data = await resp.json();
+    clearInterval(progInterval);
+    document.getElementById('demo-fill').style.width = '100%';
+    if (data.image_b64) {
+      const img = document.getElementById('demo-img');
+      img.src = 'data:image/png;base64,' + data.image_b64;
+      img.style.display = 'block';
+      document.getElementById('demo-placeholder').style.display = 'none';
+      document.getElementById('demo-status').innerHTML = '✓ Generated in ' + (data.time||'') + 's — <a href="/signup" style="color:var(--purple)">Sign up for full access</a>';
+      document.getElementById('demo-meta').style.display = 'block';
+    } else {
+      document.getElementById('demo-status').innerHTML = 'Error: ' + (data.error || 'Unknown error');
+    }
+  } catch(e) {
+    clearInterval(progInterval);
+    document.getElementById('demo-status').innerHTML = 'Error: ' + e.message;
+  }
+  setTimeout(() => { document.getElementById('demo-progress').style.display = 'none'; document.getElementById('demo-fill').style.width = '0%'; }, 1000);
+  btn.disabled = false; btn.textContent = 'Generate image';
+}
+</script>
 </body>
 </html>"""
+
 
 AUTH_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -968,6 +1184,27 @@ def api_history():
         return jsonify({"entries": list(reversed(entries)) if entries else []})
     except Exception as e:
         return jsonify({"entries": [], "error": str(e)})
+
+
+@app.route("/demo_image", methods=["POST"])
+def demo_image():
+    """Public image generation for landing page demo - no auth needed."""
+    try:
+        data = request.get_json(force=True)
+        prompt = (data.get("prompt") or "").strip()
+        if not prompt:
+            return jsonify({"error": "No prompt"})
+        if not image_engine:
+            return jsonify({"error": "Image engine not loaded"})
+        image, elapsed, message = image_engine.generate(prompt, width=384, height=384, steps=15)
+        if image is not None:
+            buf = io.BytesIO()
+            image.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode()
+            return jsonify({"image_b64": b64, "time": f"{elapsed:.1f}"})
+        return jsonify({"error": message})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 @app.route("/health")
 def health():
