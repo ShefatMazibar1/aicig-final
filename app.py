@@ -2,79 +2,43 @@ import os
 import sys
 
 # ================================================================
-# PATCH: Fix gradio_client bug before anything else loads
-# Patches get_type() AND _json_schema_to_python_type() in-place
+# PATCH: Fix gradio_client bugs before anything else loads
 # ================================================================
 def _apply_gradio_patches():
-    try:
-        import gradio_client
-        import os as _os
-        path = _os.path.join(_os.path.dirname(gradio_client.__file__), "utils.py")
-        with open(path) as f:
-            src = f.read()
-
-        changed = False
-
-        # Patch 1: get_type() - guard against non-dict input
-        p1_old = 'def get_type(schema: dict):\n    if "const" in schema:'
-        p1_new = 'def get_type(schema: dict):\n    if not isinstance(schema, dict):\n        return {}\n    if "const" in schema:'
-        if p1_old in src:
-            src = src.replace(p1_old, p1_new)
-            changed = True
-            print("[patch] get_type() fixed")
-        elif 'if not isinstance(schema, dict):\n        return {}' in src:
-            print("[patch] get_type() already fixed")
-
-        # Patch 2: _json_schema_to_python_type() - guard bool schema + additionalProperties
-        p2_old = ('def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
-                  '    """Convert the json schema into a python type hint"""\n'
-                  '    if schema == {}:\n'
-                  '        return "Any"\n'
-                  '    type_ = get_type(schema)')
-        p2_new = ('def _json_schema_to_python_type(schema: Any, defs) -> str:\n'
-                  '    """Convert the json schema into a python type hint"""\n'
-                  '    if not isinstance(schema, dict):\n'
-                  '        return "Any"\n'
-                  '    if schema == {}:\n'
-                  '        return "Any"\n'
-                  '    if "additionalProperties" in schema and not isinstance(schema.get("additionalProperties"), dict):\n'
-                  '        schema = {k: v for k, v in schema.items() if k != "additionalProperties"}\n'
-                  '    type_ = get_type(schema)')
-        if p2_old in src:
-            src = src.replace(p2_old, p2_new)
-            changed = True
-            print("[patch] _json_schema_to_python_type() fixed")
-        elif 'if not isinstance(schema, dict):\n        return "Any"' in src:
-            print("[patch] _json_schema_to_python_type() already fixed")
-
-        if changed:
-            with open(path, "w") as f:
-                f.write(src)
-
-    except Exception as e:
-        print(f"[patch] file patch failed ({e}), applying runtime patch")
-
-    # Runtime patch as fallback (always apply to be safe)
+    """Apply runtime patches to fix Gradio compatibility issues with Python 3.14"""
     try:
         import gradio_client.utils as _u
+
+        # Patch get_type to handle non-dict inputs
         _orig_get_type = _u.get_type
         def _safe_get_type(schema):
             if not isinstance(schema, dict):
                 return {}
-            return _orig_get_type(schema)
+            try:
+                return _orig_get_type(schema)
+            except Exception:
+                return {}
         _u.get_type = _safe_get_type
 
+        # Patch _json_schema_to_python_type to handle bool schema and additionalProperties
         _orig_inner = _u._json_schema_to_python_type
         def _safe_inner(schema, defs):
             if not isinstance(schema, dict):
                 return "Any"
-            if "additionalProperties" in schema and not isinstance(schema.get("additionalProperties"), dict):
-                schema = {k: v for k, v in schema.items() if k != "additionalProperties"}
-            return _orig_inner(schema, defs)
+            # Remove problematic additionalProperties
+            if "additionalProperties" in schema:
+                ap = schema.get("additionalProperties")
+                if isinstance(ap, bool) or not isinstance(ap, dict):
+                    schema = {k: v for k, v in schema.items() if k != "additionalProperties"}
+            try:
+                return _orig_inner(schema, defs)
+            except Exception:
+                return "Any"
         _u._json_schema_to_python_type = _safe_inner
-        print("[patch] runtime patch applied")
+
+        print("[patch] Gradio client patches applied successfully")
     except Exception as e:
-        print(f"[patch] runtime patch failed: {e}")
+        print(f"[patch] Warning: Could not apply patches: {e}")
 
 _apply_gradio_patches()
 
@@ -86,13 +50,14 @@ from image_engine import ImageEngine
 from history_logger import HistoryLogger
 from evaluation import Evaluator
 
+# Check tokens
 hf_token = os.environ.get("HF_TOKEN", "")
 replicate_token = os.environ.get("REPLICATE_TOKEN", "")
 
 if not hf_token:
-    print("WARNING: HF_TOKEN not set!")
+    print("WARNING: HF_TOKEN not set! Text generation will fail.")
 if not replicate_token:
-    print("WARNING: REPLICATE_TOKEN not set!")
+    print("WARNING: REPLICATE_TOKEN not set! Image generation will use HF Space fallback.")
 
 try:
     manager = ModelManager()
@@ -111,17 +76,22 @@ def generate_text(prompt, model_key, profile_name, max_tokens, temperature, top_
         if not prompt.strip():
             return "Please enter a prompt.", "", ""
         if not hf_token:
-            return "Error: HF_TOKEN not configured.", "", ""
+            return "Error: HF_TOKEN not configured. Please set your Hugging Face token.", "", ""
+
         config = manager.get_model_config(model_key)
         params = manager.get_profile(profile_name)
         params.update({"max_tokens": int(max_tokens), "temperature": temperature, "top_p": top_p})
+
         text, elapsed = text_engine.generate(prompt, config["model_id"], **params)
+
         if text.startswith("Error:"):
             return text, "", ""
+
         bleu = evaluator.bleu_score(prompt, text)
         logger.log("text", prompt, text, model_key, params, {"bleu": bleu, "time": elapsed})
         return text, f"BLEU: {bleu:.4f} | Time: {elapsed:.2f}s", ""
     except Exception as e:
+        print(f"Text generation error: {e}")
         return f"Error: {str(e)}", "", ""
 
 
@@ -129,15 +99,18 @@ def generate_image(prompt, model_key, width, height, steps):
     try:
         if not prompt.strip():
             return None, "Please enter a prompt."
+
         config = manager.get_image_model_config(model_key)
         image, elapsed, message = image_engine.generate(
             prompt, config["model_id"], int(width), int(height), int(steps)
         )
+
         if image is not None:
             logger.log("image", prompt, "generated", model_key, {}, {"time": elapsed})
             return image, f"Generated in {elapsed:.2f}s"
         return None, f"Failed: {message}"
     except Exception as e:
+        print(f"Image generation error: {e}")
         return None, f"Error: {str(e)}"
 
 
@@ -147,6 +120,7 @@ def generate_both(prompt, text_model, image_model, profile, max_tokens, temperat
         image_out, image_meta = generate_image(prompt, image_model, width, height, steps)
         return text_out, text_meta, image_out, image_meta
     except Exception as e:
+        print(f"Generate both error: {e}")
         return f"Error: {str(e)}", "", None, ""
 
 
@@ -178,15 +152,19 @@ def rate_last(rating):
         return f"Error: {e}"
 
 
+# Get model lists safely
 try:
     text_models = manager.get_text_model_keys()
     image_models = manager.get_image_model_keys()
     profiles = manager.get_profile_names()
-except Exception:
+    print(f"Available models: text={text_models}, image={image_models}, profiles={profiles}")
+except Exception as e:
+    print(f"Error getting model lists: {e}")
     text_models = ["qwen-7b", "llama-8b", "deepseek"]
-    image_models = ["stable-diffusion-v1-5", "sdxl-base"]
+    image_models = ["hf-space-sd"]
     profiles = ["balanced", "creative", "precise", "fast"]
 
+# Create the Gradio interface
 with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 🤖 AICIG — AI Content & Image Generator\n**Final Year Project** | Local LLM + Image Generation System")
 
@@ -196,8 +174,8 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                 with gr.Column(scale=2):
                     t_prompt = gr.Textbox(label="Prompt", placeholder="Write a blog post about...", lines=4)
                     with gr.Row():
-                        t_model = gr.Dropdown(choices=text_models, value=text_models[0], label="Model")
-                        t_profile = gr.Dropdown(choices=profiles, value=profiles[0], label="Profile")
+                        t_model = gr.Dropdown(choices=text_models, value=text_models[0] if text_models else "qwen-7b", label="Model")
+                        t_profile = gr.Dropdown(choices=profiles, value=profiles[0] if profiles else "balanced", label="Profile")
                     with gr.Row():
                         t_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         t_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
@@ -217,7 +195,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             with gr.Row():
                 with gr.Column(scale=2):
                     i_prompt = gr.Textbox(label="Image Prompt", placeholder="A futuristic city at sunset...", lines=4)
-                    i_model = gr.Dropdown(choices=image_models, value=image_models[0], label="Image Model")
+                    i_model = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "hf-space-sd", label="Image Model")
                     with gr.Row():
                         i_width = gr.Slider(256, 1024, value=512, step=64, label="Width")
                         i_height = gr.Slider(256, 1024, value=512, step=64, label="Height")
@@ -232,11 +210,11 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             b_top_p_state = gr.State(0.9)
             with gr.Row():
                 with gr.Column(scale=2):
-                    b_prompt = gr.Textbox(label="Prompt", placeholder="Describe something...", lines=4)
+                    b_prompt = gr.Textbox(label="Prompt", placeholder="Describe something to write about AND generate an image of...", lines=4)
                     with gr.Row():
-                        b_tmodel = gr.Dropdown(choices=text_models, value=text_models[0], label="Text Model")
-                        b_imodel = gr.Dropdown(choices=image_models, value=image_models[0], label="Image Model")
-                    b_profile = gr.Dropdown(choices=profiles, value=profiles[0], label="Profile")
+                        b_tmodel = gr.Dropdown(choices=text_models, value=text_models[0] if text_models else "qwen-7b", label="Text Model")
+                        b_imodel = gr.Dropdown(choices=image_models, value=image_models[0] if image_models else "hf-space-sd", label="Image Model")
+                    b_profile = gr.Dropdown(choices=profiles, value=profiles[0] if profiles else "balanced", label="Profile")
                     with gr.Row():
                         b_tokens = gr.Slider(50, 500, value=300, step=10, label="Max Tokens")
                         b_temp = gr.Slider(0.1, 2.0, value=0.7, step=0.1, label="Temperature")
@@ -270,7 +248,7 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
                         lines.append(f"- `{k}`: temp={v.get('temperature', '?')}, top_p={v.get('top_p', '?')}")
                     return "\n".join(lines)
                 except Exception as e:
-                    return f"Error: {e}"
+                    return f"Error loading config: {e}"
             cfg_out = gr.Markdown()
             gr.Button("Load Config").click(show_config, [], [cfg_out])
 
@@ -283,10 +261,18 @@ with gr.Blocks(title="AICIG - AI Content & Image Generator", theme=gr.themes.Sof
             export_file = gr.File(label="Download CSV")
             export_btn.click(export_history, [], [export_file])
 
+# Use uvicorn directly to avoid Gradio's template issues
 if __name__ == "__main__":
     import uvicorn
-    from gradio.routes import App
 
     port = int(os.environ.get("PORT", 10000))
-    gradio_app = App.create_app(demo)
-    uvicorn.run(gradio_app, host="0.0.0.0", port=port, log_level="info")
+
+    # Create FastAPI app and mount Gradio
+    from fastapi import FastAPI
+    from gradio.routes import mount_gradio_app
+
+    app = FastAPI()
+    app = mount_gradio_app(app, demo, path="/")
+
+    print(f"Starting server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
