@@ -120,7 +120,7 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
             <select id="t-model">
               <option value="qwen-7b">Qwen 2.5 7B</option>
               <option value="llama-8b">Llama 3.1 8B</option>
-              <option value="deepseek">DeepSeek R1 7B</option>
+              
             </select>
           </div>
           <div>
@@ -188,7 +188,7 @@ img.result-img{max-width:100%;border-radius:8px;margin-top:16px;display:none;bor
             <select id="b-tmodel">
               <option value="qwen-7b">Qwen 2.5 7B</option>
               <option value="llama-8b">Llama 3.1 8B</option>
-              <option value="deepseek">DeepSeek R1 7B</option>
+              
             </select>
           </div>
           <div>
@@ -441,7 +441,7 @@ def api_generate_image():
         enhanced = prompt + ", highly detailed, high quality, sharp focus"
 
         start = time.time()
-        api_url = f"{HF_SPACE_URL}/api/predict"
+        api_url = f"{HF_SPACE_URL}/run/predict"
         payload = {"fn_index": 0, "data": [enhanced, width, height, steps], "session_hash": "aicig"}
 
         resp = requests.post(api_url, json=payload, timeout=300)
