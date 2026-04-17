@@ -72,404 +72,331 @@ LANDING_HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AICIG Studio — Generate Content & Images with AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#07070e;--bg2:#0d0d1a;--bg3:#13131f;
-  --purple:#a855f7;--purple2:#7c3aed;--pink:#ec4899;--cyan:#06b6d4;--green:#10b981;
-  --text:#ffffff;--text2:#9ca3af;--text3:#4b5563;
-  --border:#ffffff0f;--border2:#ffffff1a;
-}
+:root{--p:#9333ea;--p2:#7c3aed;--g:#d97706;--g2:#fbbf24;--c:#06b6d4;--pk:#ec4899;--bg:#02020a;--bg2:#05050f;--bg3:#0a0a1a}
 html{scroll-behavior:smooth}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
-canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
-
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:0 48px;height:64px;display:flex;align-items:center;justify-content:space-between;background:#07070eee;backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
-.logo{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
-.logo-icon{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--purple2),var(--pink));display:flex;align-items:center;justify-content:center;font-size:13px}
-.nav-mid{display:flex;gap:28px}
-.nav-mid a{font-size:14px;color:var(--text2);text-decoration:none;transition:color .15s}
-.nav-mid a:hover{color:#fff}
-.nav-right{display:flex;align-items:center;gap:10px}
-.n-login{font-size:13px;color:var(--text2);text-decoration:none;padding:7px 16px;transition:color .15s}
-.n-login:hover{color:#fff}
-.n-signup{font-size:13px;font-weight:600;color:#fff;text-decoration:none;padding:8px 18px;background:linear-gradient(135deg,var(--purple2),var(--pink));border-radius:8px;transition:opacity .15s}
-.n-signup:hover{opacity:.85}
-
-/* HERO */
-.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px}
-.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid #a855f730;border-radius:99px;font-size:12px;color:#c084fc;background:#a855f70a;margin-bottom:32px;animation:up .7s ease both}
-.tag-pulse{width:6px;height:6px;border-radius:50%;background:#a855f7;box-shadow:0 0 8px #a855f7;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
-@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.hero h1{font-size:clamp(40px,7vw,82px);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:24px;animation:up .7s .08s ease both}
-.hero h1 em{font-style:normal;background:linear-gradient(90deg,#c084fc,#f472b6,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:gradmove 5s infinite linear}
-@keyframes gradmove{0%{background-position:0%}100%{background-position:200%}}
-.hero-sub{font-size:18px;color:var(--text2);max-width:560px;line-height:1.65;margin-bottom:40px;animation:up .7s .16s ease both}
-.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:up .7s .24s ease both}
-.cta-main{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:15px;font-weight:700;border-radius:10px;text-decoration:none;transition:transform .15s,box-shadow .15s}
-.cta-main:hover{transform:translateY(-2px);box-shadow:0 10px 40px #7c3aed35}
-.cta-sec{display:inline-flex;align-items:center;gap:6px;padding:14px 28px;border:1px solid var(--border2);color:var(--text2);font-size:15px;font-weight:500;border-radius:10px;text-decoration:none;transition:all .15s}
-.cta-sec:hover{border-color:#a855f750;color:#fff}
-.hero-note{margin-top:20px;font-size:12px;color:var(--text3);animation:up .7s .32s ease both}
-
-/* MARQUEE */
-.marquee-wrap{position:relative;z-index:1;padding:32px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;background:#ffffff03}
-.marquee-track{display:flex;gap:48px;animation:marquee 20s linear infinite;white-space:nowrap}
-.marquee-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3);flex-shrink:0}
-.marquee-dot{width:5px;height:5px;border-radius:50%;background:var(--purple)}
-@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-
-/* LIVE DEMO */
-.demo-section{position:relative;z-index:1;padding:100px 48px;max-width:1100px;margin:0 auto}
-.section-eyebrow{font-size:11px;font-weight:700;color:#a855f7;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px}
-.section-h{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
-.section-p{font-size:16px;color:var(--text2);max-width:480px;line-height:1.7;margin-bottom:40px}
-.demo-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;overflow:hidden;position:relative}
-.demo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#a855f780,#ec489980,transparent)}
-.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:#fff;overflow-x:hidden;line-height:1.6}
+canvas.bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:#02020acc;backdrop-filter:blur(20px);border-bottom:1px solid #9333ea20}
+.logo{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;background:linear-gradient(90deg,#9333ea,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.06em;text-decoration:none}
+.nav-links{display:flex;gap:28px}
+.nav-links a{font-size:13px;color:#6b7280;text-decoration:none;letter-spacing:.04em;transition:color .15s}
+.nav-links a:hover{color:#d97706}
+.nav-r{display:flex;gap:10px}
+.nb1{padding:7px 18px;border:1px solid #9333ea30;border-radius:4px;background:transparent;color:#9ca3af;font-size:13px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:.04em;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center}
+.nb1:hover{border-color:#d97706;color:#d97706}
+.nb2{padding:7px 18px;border:none;border-radius:4px;background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:.06em;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;position:relative;overflow:hidden}
+.nb2::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,#ffffff20,transparent);transform:translateX(-100%);transition:transform .4s}
+.nb2:hover::after{transform:translateX(100%)}
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 40px;overflow:hidden}
+.vibranium-ring{position:absolute;width:600px;height:600px;border-radius:50%;border:1px solid #9333ea15;left:50%;top:50%;transform:translate(-50%,-50%);animation:ringrot 20s linear infinite;pointer-events:none}
+.ring2{width:900px;height:900px;border:1px solid #9333ea08;animation-duration:35s}
+.ring3{width:300px;height:300px;border:1px solid #d9770620;animation-duration:12s;animation-direction:reverse}
+@keyframes ringrot{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+.wakanda-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid #d9770640;border-radius:2px;font-size:11px;color:#d97706;letter-spacing:.14em;text-transform:uppercase;margin-bottom:32px;background:#d9770808;position:relative;animation:fadeUp .8s ease both}
+.wakanda-badge::before,.wakanda-badge::after{content:'';position:absolute;width:6px;height:6px;border:1px solid #d97706}
+.wakanda-badge::before{top:-1px;left:-1px;border-right:none;border-bottom:none}
+.wakanda-badge::after{bottom:-1px;right:-1px;border-left:none;border-top:none}
+.wdot{width:5px;height:5px;background:#d97706;box-shadow:0 0 10px #d97706;animation:wglow 2s infinite}
+@keyframes wglow{0%,100%{opacity:1;box-shadow:0 0 8px #d97706}50%{opacity:.3;box-shadow:0 0 20px #d97706}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero h1{font-family:'Orbitron',sans-serif;font-size:clamp(32px,6vw,72px);font-weight:900;letter-spacing:-.01em;line-height:1.05;margin-bottom:16px;text-transform:uppercase;animation:fadeUp .8s .1s ease both}
+.line2{background:linear-gradient(90deg,#9333ea,#d97706,#06b6d4,#9333ea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:300%;animation:cshift 6s linear infinite}
+@keyframes cshift{0%{background-position:0%}100%{background-position:300%}}
+.hero-sub{font-size:17px;color:#9ca3af;max-width:600px;line-height:1.7;margin:0 auto 40px;letter-spacing:.02em;animation:fadeUp .8s .2s ease both}
+.hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeUp .8s .3s ease both}
+.hc1{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;font-size:14px;font-weight:700;border-radius:4px;cursor:pointer;border:none;font-family:'Rajdhani',sans-serif;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;text-decoration:none;position:relative;overflow:hidden;box-shadow:0 0 30px #9333ea30}
+.hc1:hover{transform:translateY(-2px);box-shadow:0 0 50px #9333ea50}
+.hc1::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#ffffff60,transparent)}
+.hc2{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border:1px solid #d9770640;color:#d97706;font-size:14px;font-weight:600;border-radius:4px;cursor:pointer;background:transparent;font-family:'Rajdhani',sans-serif;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;text-decoration:none}
+.hc2:hover{border-color:#d97706;background:#d9770808;box-shadow:0 0 20px #d9770620}
+.hero-note{margin-top:20px;font-size:11px;color:#374151;letter-spacing:.1em;text-transform:uppercase;animation:fadeUp .8s .4s ease both}
+.cards-row{position:relative;z-index:2;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:56px;padding:0 24px;animation:fadeUp .8s .5s ease both}
+.vcard{background:#05050f;border:1px solid #9333ea20;border-radius:6px;padding:20px;width:210px;position:relative;overflow:hidden;animation:cardfloat 5s ease-in-out infinite}
+.vcard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#9333ea,transparent)}
+.vcard::after{content:'';position:absolute;top:0;left:0;width:1px;height:100%;background:linear-gradient(180deg,#9333ea,transparent)}
+@keyframes cardfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.vcard:nth-child(2){animation-delay:1s;animation-duration:6s;border-color:#d9770625}
+.vcard:nth-child(3){animation-delay:2s;animation-duration:4.5s;border-color:#06b6d425}
+.vcard:nth-child(4){animation-delay:.5s;animation-duration:5.5s;border-color:#ec489925}
+.vc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.vc-icon{width:30px;height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.vc-live{display:flex;align-items:center;gap:4px;font-size:9px;color:#10b981;letter-spacing:.08em;text-transform:uppercase}
+.vc-live-dot{width:4px;height:4px;border-radius:50%;background:#10b981;animation:wglow 1.5s infinite}
+.vc-label{font-size:9px;color:#4b5563;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.vc-val{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;background:linear-gradient(90deg,#9333ea,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.vc-bar{height:2px;background:#0a0a1a;border-radius:1px;margin-top:10px;overflow:hidden}
+.vc-fill{height:100%;animation:barfill 3s ease-in-out infinite alternate}
+@keyframes barfill{0%{width:30%}100%{width:92%}}
+.out-lines{display:flex;flex-direction:column;gap:4px}
+.ol{height:3px;border-radius:1px;animation:olshine 2s ease infinite}
+.ol:nth-child(1){background:linear-gradient(90deg,#9333ea30,#9333ea80)}
+.ol:nth-child(2){background:linear-gradient(90deg,#9333ea20,#d9770660);width:80%;animation-delay:.3s}
+.ol:nth-child(3){background:linear-gradient(90deg,#9333ea30,#06b6d460);width:90%;animation-delay:.6s}
+.ol:nth-child(4){background:linear-gradient(90deg,#9333ea20,#9333ea50);width:65%;animation-delay:.9s}
+@keyframes olshine{0%,100%{opacity:.4}50%{opacity:1}}
+.img-frame{width:100%;height:60px;background:#0a0a1a;border-radius:4px;position:relative;overflow:hidden;margin-top:8px;border:1px solid #9333ea15}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#d97706,transparent);animation:scandown 2s linear infinite}
+@keyframes scandown{0%{top:0;opacity:1}100%{top:100%;opacity:.3}}
+.px-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:1px;padding:3px;height:100%}
+.px{border-radius:1px;opacity:.3;animation:pxanim 3s infinite}
+@keyframes pxanim{0%,100%{opacity:.15}50%{opacity:.8}}
+.score-ring{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;margin:8px auto 0}
+.score-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.score-val{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:#d97706;position:relative;z-index:1}
+.marquee-wrap{position:relative;z-index:1;border-top:1px solid #9333ea15;border-bottom:1px solid #9333ea15;padding:14px 0;overflow:hidden;background:linear-gradient(90deg,#9333ea05,#05050f,#9333ea05)}
+.mq-track{display:flex;gap:48px;animation:mq 22s linear infinite;white-space:nowrap}
+.mq-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#374151;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0}
+.mq-dot{width:4px;height:4px;background:#d97706;box-shadow:0 0 6px #d97706}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.stats-section{position:relative;z-index:1;padding:60px 48px;background:#05050f;border-bottom:1px solid #9333ea15}
+.stats-inner{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+@media(max-width:700px){.stats-inner{grid-template-columns:repeat(2,1fr)}}
+.st{text-align:center;padding:24px;border-right:1px solid #9333ea15}
+.st:last-child{border-right:none}
+.sn{font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;background:linear-gradient(135deg,#9333ea,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.sl{font-size:11px;color:#4b5563;margin-top:8px;letter-spacing:.08em;text-transform:uppercase}
+.features-section{position:relative;z-index:1;padding:80px 48px;max-width:1100px;margin:0 auto}
+.eyebrow{font-size:10px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.18em;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';display:inline-block;width:20px;height:1px;background:#d97706}
+.sec-h{font-family:'Orbitron',sans-serif;font-size:clamp(22px,3.5vw,38px);font-weight:700;text-transform:uppercase;letter-spacing:.02em;margin-bottom:12px;line-height:1.1}
+.sec-p{font-size:15px;color:#6b7280;max-width:480px;line-height:1.7;margin-bottom:40px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#9333ea15;border:1px solid #9333ea15}
+@media(max-width:700px){.feat-grid{grid-template-columns:1fr}}
+.fc{background:#05050f;padding:28px;transition:all .2s;position:relative;overflow:hidden}
+.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#9333ea40,transparent);opacity:0;transition:opacity .3s}
+.fc:hover{background:#07071a}.fc:hover::before{opacity:1}
+.fi{width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:14px}
+.ft{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;color:#d97706}
+.fd{font-size:13px;color:#6b7280;line-height:1.65}
+.demo-section{position:relative;z-index:1;padding:80px 48px;max-width:1100px;margin:0 auto}
+.demo-card{background:#05050f;border:1px solid #9333ea20;border-radius:6px;overflow:hidden;position:relative}
+.demo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#d97706,#9333ea,transparent)}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr}
 @media(max-width:700px){.demo-grid{grid-template-columns:1fr}}
-.demo-left{padding:28px;border-right:1px solid var(--border)}
-.demo-right{padding:28px;display:flex;flex-direction:column}
-.demo-field-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-.demo-textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;font-size:13px;font-family:inherit;color:#fff;resize:none;min-height:80px;outline:none;line-height:1.5;transition:border-color .15s}
-.demo-textarea:focus{border-color:#a855f7;box-shadow:0 0 0 3px #a855f712}
-.demo-textarea::placeholder{color:var(--text3)}
-.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-.chip{font-size:11px;padding:4px 11px;border:1px solid var(--border2);border-radius:99px;color:var(--text3);cursor:pointer;transition:all .15s}
-.chip:hover{border-color:#a855f7;color:#c084fc}
-.demo-gen-btn{width:100%;padding:12px;margin-top:16px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple2),var(--pink));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
-.demo-gen-btn:hover{opacity:.88;transform:translateY(-1px)}
-.demo-gen-btn:disabled{opacity:.4;cursor:wait;transform:none}
-.demo-img-wrap{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:12px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-.demo-img-wrap img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:none}
-.demo-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text3)}
-.demo-empty svg{opacity:.25}
-.demo-empty p{font-size:12px}
-.demo-prog{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:14px;display:none}
-.demo-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--pink));width:0%;transition:width .5s ease}
-.demo-stat-row{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--text3);display:none}
-.demo-stat-row.show{display:flex}
-.spin{width:10px;height:10px;border:1.5px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+.dl{padding:28px;border-right:1px solid #9333ea15}
+.dr{padding:28px;display:flex;flex-direction:column;gap:14px}
+.df-label{font-size:9px;color:#4b5563;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+.demo-ta{width:100%;background:#02020a;border:1px solid #9333ea25;border-radius:4px;padding:12px;font-size:13px;font-family:'Rajdhani',sans-serif;color:#fff;resize:none;min-height:80px;outline:none;line-height:1.5;letter-spacing:.02em;transition:border-color .2s}
+.demo-ta:focus{border-color:#9333ea}.demo-ta::placeholder{color:#374151}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:10px;padding:4px 10px;border:1px solid #9333ea20;color:#6b7280;cursor:pointer;letter-spacing:.04em;transition:all .15s;background:transparent;font-family:'Rajdhani',sans-serif;border-radius:2px}
+.chip:hover{border-color:#d97706;color:#d97706;background:#d9770808}
+.demo-btn{width:100%;padding:12px;margin-top:16px;border:none;border-radius:4px;background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;letter-spacing:.06em;text-transform:uppercase;transition:all .2s;position:relative;overflow:hidden}
+.demo-btn:hover{transform:translateY(-1px);box-shadow:0 8px 30px #9333ea40}
+.demo-btn:disabled{opacity:.4;cursor:wait;transform:none}
+.demo-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#ffffff40,transparent)}
+.dprog{height:2px;background:#0a0a1a;margin-top:12px;display:none;overflow:hidden}
+.dpf{height:100%;background:linear-gradient(90deg,#9333ea,#d97706,#06b6d4);width:0%;transition:width .5s}
+.dstat{font-size:11px;color:#4b5563;margin-top:8px;display:none;align-items:center;gap:6px;letter-spacing:.04em}
+.dstat.show{display:flex}
+.spin{width:10px;height:10px;border:1.5px solid #9333ea;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* STATS */
-.stats-section{position:relative;z-index:1;background:#ffffff04;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:72px 48px}
-.stats-grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:32px;text-align:center}
-@media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
-.stat-n{font-size:48px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-.stat-l{font-size:13px;color:var(--text3);margin-top:6px}
-
-/* FEATURES */
-.features-section{position:relative;z-index:1;padding:100px 48px;max-width:1100px;margin:0 auto}
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media(max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.feat-grid{grid-template-columns:1fr}}
-.feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;transition:all .2s;cursor:default}
-.feat-card:hover{border-color:#a855f730;transform:translateY(-2px)}
-.feat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px}
-.feat-title{font-size:15px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em}
-.feat-desc{font-size:13px;color:var(--text2);line-height:1.65}
-
-/* STEPS */
-.steps-section{position:relative;z-index:1;padding:100px 48px;max-width:1100px;margin:0 auto}
-.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:48px}
+.demo-imgwrap{flex:1;background:#02020a;border:1px solid #9333ea20;border-radius:4px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.demo-imgwrap img{width:100%;height:100%;object-fit:cover;border-radius:4px;display:none}
+.demo-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:#374151}
+.demo-empty svg{opacity:.2}.demo-empty p{font-size:10px;text-transform:uppercase;letter-spacing:.1em}
+.steps-section{position:relative;z-index:1;background:#05050f;border-top:1px solid #9333ea15;padding:80px 48px}
+.steps-inner{max-width:1100px;margin:0 auto}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:48px}
 @media(max-width:700px){.steps-grid{grid-template-columns:1fr 1fr}}
-.step-card{position:relative}
-.step-num{font-size:13px;font-weight:700;color:#a855f7;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.step-num::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#a855f730,transparent)}
-.step-title{font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-.02em}
-.step-desc{font-size:13px;color:var(--text2);line-height:1.6}
-
-/* CTA BANNER */
-.cta-section{position:relative;z-index:1;margin:0 48px 80px;border-radius:20px;background:linear-gradient(135deg,#1a0a2e,#1a0a1e,#0a1a1e);border:1px solid #a855f720;padding:72px 48px;text-align:center;overflow:hidden}
-.cta-section::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:400px;height:200px;background:radial-gradient(ellipse,#7c3aed20,transparent 70%);pointer-events:none}
-.cta-section h2{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.03em;margin-bottom:14px}
-.cta-section p{font-size:16px;color:var(--text2);margin-bottom:32px}
-
-/* FOOTER */
-footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:40px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
-.foot-logo{font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px}
-.foot-icon{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--purple2),var(--pink));display:flex;align-items:center;justify-content:center;font-size:10px}
-.foot-text{font-size:12px;color:var(--text3)}
+.step{padding:24px;border-right:1px solid #9333ea15}
+.step:last-child{border-right:none}
+.snum{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:#9333ea;letter-spacing:.1em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.snum::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#9333ea30,transparent)}
+.stitle{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;color:#d97706}
+.sdesc{font-size:13px;color:#6b7280;line-height:1.65}
+.cta-banner{position:relative;z-index:1;margin:60px 48px;border-radius:6px;overflow:hidden;padding:72px 48px;text-align:center;border:1px solid #9333ea20}
+.cta-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0d0520,#1a0520,#050d1a);z-index:0}
+.cta-glow1{position:absolute;top:-80px;left:30%;width:300px;height:200px;background:radial-gradient(ellipse,#9333ea25,transparent 70%);pointer-events:none}
+.cta-glow2{position:absolute;bottom:-60px;right:25%;width:250px;height:180px;background:radial-gradient(ellipse,#d9770620,transparent 70%);pointer-events:none}
+.cta-content{position:relative;z-index:1}
+.cta-h{font-family:'Orbitron',sans-serif;font-size:clamp(24px,4vw,42px);font-weight:900;text-transform:uppercase;letter-spacing:.02em;margin-bottom:12px;line-height:1.1}
+.cta-p{font-size:16px;color:#6b7280;margin-bottom:32px;letter-spacing:.02em}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+footer{position:relative;z-index:1;border-top:1px solid #9333ea15;padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.flogo{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;background:linear-gradient(90deg,#9333ea,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.ftext{font-size:11px;color:#374151;letter-spacing:.04em}
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-
+<canvas class="bg" id="bgc"></canvas>
 <nav>
-  <a href="/" class="logo">
-    <div class="logo-icon">🤖</div>
-    AICIG Studio
-  </a>
-  <div class="nav-mid">
-    <a href="#demo">Live demo</a>
-    <a href="#features">Features</a>
-    <a href="#how">How it works</a>
+  <a href="/" class="logo">AICIG Studio</a>
+  <div class="nav-links">
+    <a href="#features">Features</a><a href="#demo">Live Demo</a><a href="#how">How It Works</a>
   </div>
-  <div class="nav-right">
-    <a href="/login" class="n-login">Sign in</a>
-    <a href="/signup" class="n-signup">Get started free →</a>
+  <div class="nav-r">
+    <a href="/login" class="nb1">Sign In</a>
+    <a href="/signup" class="nb2">Get Started →</a>
   </div>
 </nav>
-
 <section class="hero">
-  <div class="hero-tag"><span class="tag-pulse"></span>Final Year Project · University of Westminster</div>
-  <h1>Stop Searching.<br>Start <em>Generating.</em></h1>
-  <p class="hero-sub">AICIG Studio turns your prompts into high-quality articles, blog posts, and AI images — in seconds. Completely free. No credit card needed.</p>
-  <div class="hero-ctas">
-    <a href="/signup" class="cta-main">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
-      Start generating free
-    </a>
-    <a href="#demo" class="cta-sec">
-      See it live
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </a>
+  <div class="vibranium-ring"></div>
+  <div class="vibranium-ring ring2"></div>
+  <div class="vibranium-ring ring3"></div>
+  <div style="position:relative;z-index:2;width:100%;max-width:1100px">
+    <div class="wakanda-badge"><span class="wdot"></span>University of Westminster · Final Year Project</div>
+    <h1 style="display:block"><span style="display:block">Stop Searching.</span><span class="line2">Start Generating.</span></h1>
+    <p class="hero-sub">AICIG Studio fuses cutting-edge language models with AI image synthesis — transforming your prompts into powerful content in seconds. Free. Always.</p>
+    <div class="hero-ctas">
+      <a href="/signup" class="hc1"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg>Activate Studio</a>
+      <a href="#demo" class="hc2">View Demo →</a>
+    </div>
+    <div class="hero-note">No credit card · Free forever · Open source</div>
+    <div class="cards-row">
+      <div class="vcard">
+        <div class="vc-top"><div class="vc-icon" style="background:#9333ea15;border:1px solid #9333ea30">✍️</div><div class="vc-live"><span class="vc-live-dot"></span>Live</div></div>
+        <div class="vc-label">Text generation</div>
+        <div class="out-lines"><div class="ol"></div><div class="ol"></div><div class="ol"></div><div class="ol"></div></div>
+        <div class="vc-bar"><div class="vc-fill" style="background:linear-gradient(90deg,#9333ea,#d97706)"></div></div>
+      </div>
+      <div class="vcard">
+        <div class="vc-top"><div class="vc-icon" style="background:#d9770615;border:1px solid #d9770630">🖼️</div><div class="vc-live" style="color:#d97706"><span class="vc-live-dot" style="background:#d97706"></span>Gen</div></div>
+        <div class="vc-label">Image synthesis</div>
+        <div class="img-frame"><div class="scan-line"></div><div class="px-grid" id="pxg"></div></div>
+      </div>
+      <div class="vcard">
+        <div class="vc-top"><div class="vc-icon" style="background:#06b6d415;border:1px solid #06b6d430">📊</div><div class="vc-live" style="color:#06b6d4"><span class="vc-live-dot" style="background:#06b6d4"></span>Score</div></div>
+        <div class="vc-label">BLEU quality score</div>
+        <div class="score-ring"><svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#0a0a1a" stroke-width="4"/><circle cx="24" cy="24" r="19" fill="none" stroke="url(#sg)" stroke-width="4" stroke-dasharray="119.4" stroke-dashoffset="20" stroke-linecap="round"/><defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9333ea"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs></svg><span class="score-val">84%</span></div>
+        <div class="vc-bar" style="margin-top:10px"><div class="vc-fill" style="background:linear-gradient(90deg,#06b6d4,#9333ea)"></div></div>
+      </div>
+      <div class="vcard">
+        <div class="vc-top"><div class="vc-icon" style="background:#ec489915;border:1px solid #ec489930">⚡</div><div class="vc-live" style="color:#ec4899"><span class="vc-live-dot" style="background:#ec4899"></span>Both</div></div>
+        <div class="vc-label">Generate both mode</div>
+        <div class="out-lines"><div class="ol" style="background:linear-gradient(90deg,#ec489930,#ec489980)"></div><div class="ol" style="background:linear-gradient(90deg,#ec489920,#9333ea60);width:75%"></div></div>
+        <div class="img-frame" style="height:36px;margin-top:8px"><div class="scan-line" style="background:linear-gradient(90deg,transparent,#ec4899,transparent)"></div><div class="px-grid" id="pxg2"></div></div>
+      </div>
+    </div>
   </div>
-  <div class="hero-note">No credit card &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; Open source</div>
 </section>
-
 <div class="marquee-wrap">
-  <div class="marquee-track" id="marquee">
-    <div class="marquee-item"><span class="marquee-dot"></span>Text generation</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Image synthesis</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>BLEU evaluation</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Llama 3.1 · Qwen 2.5</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Pollinations.ai</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Generation history</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Dark &amp; light mode</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Real-time analytics</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Text generation</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Image synthesis</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>BLEU evaluation</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Llama 3.1 · Qwen 2.5</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Pollinations.ai</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Generation history</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Dark &amp; light mode</div>
-    <div class="marquee-item"><span class="marquee-dot"></span>Real-time analytics</div>
+  <div class="mq-track">
+    <div class="mq-item"><span class="mq-dot"></span>Text Generation</div><div class="mq-item"><span class="mq-dot"></span>Image Synthesis</div><div class="mq-item"><span class="mq-dot"></span>BLEU Evaluation</div><div class="mq-item"><span class="mq-dot"></span>Llama 3.1 · Qwen 2.5</div><div class="mq-item"><span class="mq-dot"></span>Pollinations.ai</div><div class="mq-item"><span class="mq-dot"></span>Generation History</div><div class="mq-item"><span class="mq-dot"></span>Dark · Light Mode</div><div class="mq-item"><span class="mq-dot"></span>Real-Time Analytics</div>
+    <div class="mq-item"><span class="mq-dot"></span>Text Generation</div><div class="mq-item"><span class="mq-dot"></span>Image Synthesis</div><div class="mq-item"><span class="mq-dot"></span>BLEU Evaluation</div><div class="mq-item"><span class="mq-dot"></span>Llama 3.1 · Qwen 2.5</div><div class="mq-item"><span class="mq-dot"></span>Pollinations.ai</div><div class="mq-item"><span class="mq-dot"></span>Generation History</div><div class="mq-item"><span class="mq-dot"></span>Dark · Light Mode</div><div class="mq-item"><span class="mq-dot"></span>Real-Time Analytics</div>
   </div>
 </div>
-
-<section class="stats-section">
-  <div class="stats-grid">
-    <div><div class="stat-n" id="sn1">0</div><div class="stat-l">AI models available</div></div>
-    <div><div class="stat-n" id="sn2">0%</div><div class="stat-l">Free to use, forever</div></div>
-    <div><div class="stat-n" id="sn3">0s</div><div class="stat-l">Average text generation</div></div>
-    <div><div class="stat-n" id="sn4">∞</div><div class="stat-l">Generations allowed</div></div>
+<div class="stats-section">
+  <div class="stats-inner">
+    <div class="st"><div class="sn" id="sn1">0</div><div class="sl">AI Models</div></div>
+    <div class="st"><div class="sn" id="sn2">0%</div><div class="sl">Free Forever</div></div>
+    <div class="st"><div class="sn" id="sn3">0s</div><div class="sl">Avg Generation</div></div>
+    <div class="st"><div class="sn">∞</div><div class="sl">Generations</div></div>
+  </div>
+</div>
+<section id="features" class="features-section">
+  <div class="eyebrow">Capabilities</div>
+  <div class="sec-h">The Full Arsenal</div>
+  <div class="sec-p">Every tool you need to generate, evaluate, and track AI content — all in one platform, completely free.</div>
+  <div class="feat-grid">
+    <div class="fc"><div class="fi" style="background:#9333ea15;border:1px solid #9333ea30">✍️</div><div class="ft">Text Generation</div><div class="fd">Articles, blogs and summaries with Llama 3.1 via Groq — lightning fast responses on free tier.</div></div>
+    <div class="fc"><div class="fi" style="background:#d9770615;border:1px solid #d9770630">🖼️</div><div class="ft">Image Synthesis</div><div class="fd">Stunning AI images from any prompt via Pollinations.ai — completely free, unlimited generations.</div></div>
+    <div class="fc"><div class="fi" style="background:#06b6d415;border:1px solid #06b6d430">⚡</div><div class="ft">Generate Both</div><div class="fd">Run text and image generation simultaneously from a single prompt — parallel AI power.</div></div>
+    <div class="fc"><div class="fi" style="background:#10b98115;border:1px solid #10b98130">📊</div><div class="ft">BLEU Scoring</div><div class="fd">Automatic BLEU-4 evaluation on every output — measure quality and track improvement over time.</div></div>
+    <div class="fc"><div class="fi" style="background:#f59e0b15;border:1px solid #f59e0b30">🎛️</div><div class="ft">Full Control</div><div class="fd">Tune temperature, tokens, profiles. Balanced, creative, precise, or fast — you decide.</div></div>
+    <div class="fc"><div class="fi" style="background:#ec489915;border:1px solid #ec489930">📜</div><div class="ft">History & Analytics</div><div class="fd">Every generation logged with timestamps, metrics, and model info. Full personal session history.</div></div>
   </div>
 </section>
-
 <section id="demo" class="demo-section">
-  <div class="section-eyebrow">Live demo</div>
-  <div class="section-h">Try it now.<br>No account required.</div>
-  <div class="section-p">Type a prompt, click generate, and watch AICIG create a real AI image in seconds. Sign up for text generation and history.</div>
+  <div class="eyebrow">Live Demo</div>
+  <div class="sec-h">Try It. Right Now.</div>
+  <div class="sec-p">No account needed. Generate a real AI image from any prompt — powered by Pollinations.ai.</div>
   <div class="demo-card">
     <div class="demo-grid">
-      <div class="demo-left">
-        <div class="demo-field-label">Your prompt</div>
-        <textarea class="demo-textarea" id="dp" placeholder="A cyberpunk city at night with neon lights..." rows="3"></textarea>
-        <div class="demo-field-label" style="margin-top:16px">Quick examples</div>
-        <div class="chip-row">
-          <span class="chip" onclick="setP('A neon cyberpunk city at night')">Cyberpunk city</span>
-          <span class="chip" onclick="setP('A magical glowing forest at dusk')">Magic forest</span>
-          <span class="chip" onclick="setP('A futuristic space station orbiting Earth')">Space station</span>
-          <span class="chip" onclick="setP('An AI robot brain made of crystal and light')">AI robot brain</span>
-          <span class="chip" onclick="setP('An underwater bioluminescent kingdom')">Ocean kingdom</span>
-          <span class="chip" onclick="setP('A dragon made of fire and stars')">Fire dragon</span>
+      <div class="dl">
+        <div class="df-label">Your Prompt</div>
+        <textarea class="demo-ta" id="dp" placeholder="A vibranium-powered AI city at night..." rows="3"></textarea>
+        <div class="df-label" style="margin-top:16px">Quick Examples</div>
+        <div class="chips">
+          <button class="chip" onclick="setP('A vibranium-powered neon city at night')">Vibranium City</button>
+          <button class="chip" onclick="setP('A panther made of purple energy and light')">Energy Panther</button>
+          <button class="chip" onclick="setP('A futuristic African kingdom with purple crystals')">Crystal Kingdom</button>
+          <button class="chip" onclick="setP('An AI robot with glowing purple circuits')">AI Robot</button>
+          <button class="chip" onclick="setP('A space station orbiting Earth with purple aurora')">Space Station</button>
         </div>
-        <button class="demo-gen-btn" id="dgb" onclick="demoGen()">Generate image →</button>
-        <div class="demo-prog" id="dprog"><div class="demo-prog-fill" id="dpf"></div></div>
-        <div class="demo-stat-row" id="dstat"></div>
+        <button class="demo-btn" id="dgb" onclick="demoGen()">Generate Image →</button>
+        <div class="dprog" id="dprog"><div class="dpf" id="dpf"></div></div>
+        <div class="dstat" id="dstat"></div>
       </div>
-      <div class="demo-right">
-        <div class="demo-field-label">Generated image</div>
-        <div class="demo-img-wrap" id="diw">
-          <div class="demo-empty" id="dem">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="6" width="36" height="36" rx="7" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="17" r="3.5" fill="currentColor" opacity=".4"/><path d="M6 32l11-11 8 8 7-8 16 11" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            <p>Image renders here</p>
-          </div>
+      <div class="dr">
+        <div class="df-label">Generated Image</div>
+        <div class="demo-imgwrap" id="diw">
+          <div class="demo-empty" id="dem"><svg width="44" height="44" viewBox="0 0 44 44" fill="none"><rect x="4" y="4" width="36" height="36" rx="4" stroke="currentColor" stroke-width="1.2"/><circle cx="14" cy="15" r="3" fill="currentColor" opacity=".4"/><path d="M4 30l10-10 8 8 7-8 15 10" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><p>Image renders here</p></div>
           <img id="dimg" alt="Generated">
         </div>
-        <div style="margin-top:12px;font-size:12px;color:var(--text3)">
-          Want text generation too? <a href="/signup" style="color:#a855f7;text-decoration:none">Create a free account →</a>
-        </div>
+        <div style="font-size:10px;color:#374151;letter-spacing:.06em;text-transform:uppercase">Sign up for text generation + history →</div>
       </div>
     </div>
   </div>
 </section>
-
-<section id="features" class="features-section">
-  <div class="section-eyebrow">Features</div>
-  <div class="section-h">Everything you need<br>to create AI content</div>
-  <div class="section-p">A complete platform for generating, evaluating, and tracking AI content — built for research and everyday use.</div>
-  <div class="feat-grid">
-    <div class="feat-card"><div class="feat-icon" style="background:#a855f715;border:1px solid #a855f730">✍️</div><div class="feat-title">Text generation</div><div class="feat-desc">Generate articles, blogs, and summaries with Llama 3.1 via Groq — sub-second response times on free tier.</div></div>
-    <div class="feat-card"><div class="feat-icon" style="background:#ec489915;border:1px solid #ec489930">🖼️</div><div class="feat-title">Image generation</div><div class="feat-desc">Create stunning AI images from any prompt using Pollinations.ai — completely free, unlimited, no API key needed.</div></div>
-    <div class="feat-card"><div class="feat-icon" style="background:#06b6d415;border:1px solid #06b6d430">⚡</div><div class="feat-title">Generate both</div><div class="feat-desc">Run text and image generation simultaneously from one prompt — perfect for content creation at speed.</div></div>
-    <div class="feat-card"><div class="feat-icon" style="background:#10b98115;border:1px solid #10b98130">📊</div><div class="feat-title">BLEU scoring</div><div class="feat-desc">Every text output is automatically evaluated with BLEU-4 metrics so you can measure and improve quality.</div></div>
-    <div class="feat-card"><div class="feat-icon" style="background:#f59e0b15;border:1px solid #f59e0b30">🎛️</div><div class="feat-title">Fine-grained control</div><div class="feat-desc">Tune temperature, max tokens, top-p, and generation profiles — or pick balanced, creative, precise, or fast.</div></div>
-    <div class="feat-card"><div class="feat-icon" style="background:#3b82f615;border:1px solid #3b82f630">📜</div><div class="feat-title">History & analytics</div><div class="feat-desc">Every generation is logged with timestamps, metrics, and model info — track your usage and review past outputs.</div></div>
-  </div>
-</section>
-
-<section id="how" style="background:#ffffff03;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:100px 0;position:relative;z-index:1">
-  <div class="steps-section" style="padding:0 48px">
-    <div class="section-eyebrow">How it works</div>
-    <div class="section-h">From zero to<br>generating in minutes</div>
+<section id="how" class="steps-section">
+  <div class="steps-inner">
+    <div class="eyebrow">Protocol</div>
+    <div class="sec-h">Activation Sequence</div>
     <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-num">01 <span style="color:var(--text3);font-weight:400;font-size:11px">Account</span></div>
-        <div class="step-title">Create your account</div>
-        <div class="step-desc">Sign up in under 30 seconds — username, email, password. No credit card, no subscription, ever.</div>
-      </div>
-      <div class="step-card">
-        <div class="step-num">02 <span style="color:var(--text3);font-weight:400;font-size:11px">Prompt</span></div>
-        <div class="step-title">Write your prompt</div>
-        <div class="step-desc">Describe what you want — a blog post about AI, an image of a space station, or both at once.</div>
-      </div>
-      <div class="step-card">
-        <div class="step-num">03 <span style="color:var(--text3);font-weight:400;font-size:11px">Configure</span></div>
-        <div class="step-title">Choose your settings</div>
-        <div class="step-desc">Pick a model, profile, and tune the sliders — or just hit generate with the smart defaults.</div>
-      </div>
-      <div class="step-card">
-        <div class="step-num">04 <span style="color:var(--text3);font-weight:400;font-size:11px">Done</span></div>
-        <div class="step-title">Generate & review</div>
-        <div class="step-desc">Get your content instantly. Everything auto-saves to your personal history with full metrics.</div>
-      </div>
+      <div class="step"><div class="snum">01 <span style="color:#4b5563;font-weight:400;font-size:9px">Account</span></div><div class="stitle">Create Account</div><div class="sdesc">Sign up in 30 seconds. No credit card, no subscription. Username, email, password — done.</div></div>
+      <div class="step"><div class="snum">02 <span style="color:#4b5563;font-weight:400;font-size:9px">Prompt</span></div><div class="stitle">Write Prompt</div><div class="sdesc">Describe what you need — an article, an image, or both. Natural language, any topic.</div></div>
+      <div class="step"><div class="snum">03 <span style="color:#4b5563;font-weight:400;font-size:9px">Configure</span></div><div class="stitle">Set Parameters</div><div class="sdesc">Choose your model, tune temperature and tokens — or use smart defaults and generate.</div></div>
+      <div class="step"><div class="snum">04 <span style="color:#4b5563;font-weight:400;font-size:9px">Output</span></div><div class="stitle">Generate & Review</div><div class="sdesc">Instant results. BLEU-scored text, rendered images. Everything saved to your history.</div></div>
     </div>
   </div>
 </section>
-
-<section class="cta-section">
-  <h2>Ready to start<br>generating?</h2>
-  <p>Join AICIG Studio today. Free forever, no credit card needed.</p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="/signup" class="cta-main">Create free account →</a>
-    <a href="/login" class="cta-sec" style="border-color:#ffffff20;color:#9ca3af">Sign in</a>
+<div class="cta-banner">
+  <div class="cta-bg"></div><div class="cta-glow1"></div><div class="cta-glow2"></div>
+  <div class="cta-content">
+    <div class="cta-h">Ready to Generate?</div>
+    <div class="cta-p">Join AICIG Studio today. Free forever, no credit card needed.</div>
+    <div class="cta-btns">
+      <a href="/signup" class="hc1">Activate Free Account →</a>
+      <a href="/login" class="hc2">Sign In</a>
+    </div>
   </div>
-</section>
-
+</div>
 <footer>
-  <div class="foot-logo">
-    <div class="foot-icon">🤖</div>
-    AICIG Studio
-  </div>
-  <div class="foot-text">Final Year Project · Shefat Mazibar (W1967304) · University of Westminster · Supervisor: Jeffrey Ferguson</div>
+  <div class="flogo">AICIG Studio</div>
+  <div class="ftext">Shefat Mazibar · W1967304 · University of Westminster · Supervisor: Jeffrey Ferguson</div>
 </footer>
-
 <script>
-/* WEBGL-STYLE CANVAS BACKGROUND */
-const c = document.getElementById('bg');
-const ctx = c.getContext('2d');
-let W, H, pts = [];
-function resize(){ W = c.width = innerWidth; H = c.height = innerHeight; }
-resize(); window.addEventListener('resize', resize);
-
-class Pt {
-  constructor(){
-    this.x = Math.random()*W; this.y = Math.random()*H;
-    this.vx = (Math.random()-.5)*.25; this.vy = (Math.random()-.5)*.25;
-    this.r = Math.random()*1.2+.3;
-    this.col = ['#a855f7','#7c3aed','#ec4899','#06b6d4'][Math.floor(Math.random()*4)];
-    this.a = Math.random()*.4+.1; this.p = Math.random()*Math.PI*2;
-  }
-  tick(){
-    this.x+=this.vx; this.y+=this.vy; this.p+=.015;
-    if(this.x<0||this.x>W) this.vx*=-1;
-    if(this.y<0||this.y>H) this.vy*=-1;
-  }
-  draw(){
-    ctx.globalAlpha = this.a*(0.6+0.4*Math.sin(this.p));
-    ctx.fillStyle = this.col;
-    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill();
-  }
-}
-
-for(let i=0;i<100;i++) pts.push(new Pt());
-
-function frame(){
-  ctx.clearRect(0,0,W,H);
-  for(let i=0;i<pts.length;i++){
-    for(let j=i+1;j<pts.length;j++){
-      const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.sqrt(dx*dx+dy*dy);
-      if(d<90){ ctx.globalAlpha=(1-d/90)*.06; ctx.strokeStyle='#7c3aed'; ctx.lineWidth=.5; ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
-    }
-  }
-  pts.forEach(p=>{ p.tick(); p.draw(); });
-  ctx.globalAlpha=1;
-  requestAnimationFrame(frame);
-}
+const bgc=document.getElementById('bgc');
+const ctx=bgc.getContext('2d');
+let W,H,pts=[],hexes=[];
+function resize(){W=bgc.width=innerWidth;H=bgc.height=Math.max(document.body.scrollHeight,innerHeight);}
+setTimeout(resize,300);window.addEventListener('resize',resize);
+class Pt{constructor(){this.reset()}reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.18;this.vy=(Math.random()-.5)*.18;this.r=Math.random()*1.2+.3;this.col=['#9333ea','#7c3aed','#d97706','#06b6d4','#ec4899'][~~(Math.random()*5)];this.a=Math.random()*.28+.06;this.p=Math.random()*Math.PI*2;}tick(){this.x+=this.vx;this.y+=this.vy;this.p+=.01;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;}draw(){ctx.globalAlpha=this.a*(0.5+0.5*Math.sin(this.p));ctx.fillStyle=this.col;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();}}
+class Hex{constructor(){this.x=Math.random()*W;this.y=Math.random()*H;this.size=Math.random()*22+8;this.rot=Math.random()*Math.PI*2;this.vr=(Math.random()-.5)*.003;this.a=Math.random()*.07+.02;this.col=Math.random()>.5?'#9333ea':'#d97706';}tick(){this.rot+=this.vr;}draw(){ctx.globalAlpha=this.a;ctx.strokeStyle=this.col;ctx.lineWidth=.5;ctx.beginPath();for(let i=0;i<6;i++){const a=this.rot+i*Math.PI/3;i===0?ctx.moveTo(this.x+this.size*Math.cos(a),this.y+this.size*Math.sin(a)):ctx.lineTo(this.x+this.size*Math.cos(a),this.y+this.size*Math.sin(a));}ctx.closePath();ctx.stroke();}}
+for(let i=0;i<120;i++)pts.push(new Pt());
+for(let i=0;i<70;i++)hexes.push(new Hex());
+function frame(){ctx.clearRect(0,0,W,H);hexes.forEach(h=>{h.tick();h.draw();});for(let i=0;i<pts.length;i++){for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<90){ctx.globalAlpha=(1-d/90)*.06;ctx.strokeStyle='#9333ea';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.stroke();}}}pts.forEach(p=>{p.tick();p.draw();});ctx.globalAlpha=1;requestAnimationFrame(frame);}
 frame();
-
-/* COUNTER ANIMATION */
-function countUp(el, target, suffix='', duration=1800){
-  const start = performance.now();
-  const isStr = typeof target === 'string';
-  function step(now){
-    const prog = Math.min((now-start)/duration,1);
-    const ease = 1-Math.pow(1-prog,3);
-    if(isStr){ el.textContent = target; return; }
-    el.textContent = Math.round(ease*target) + suffix;
-    if(prog<1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-const statsObs = new IntersectionObserver(entries=>{
-  if(entries[0].isIntersecting){
-    countUp(document.getElementById('sn1'),3,'');
-    countUp(document.getElementById('sn2'),100,'%');
-    countUp(document.getElementById('sn3'),2,'s');
-    document.getElementById('sn4').textContent='∞';
-    statsObs.disconnect();
-  }
-},{threshold:.5});
-statsObs.observe(document.querySelector('.stats-section'));
-
-/* SCROLL REVEAL */
-const revealObs = new IntersectionObserver(entries=>{
-  entries.forEach(e=>{ if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }});
-},{threshold:.1});
-document.querySelectorAll('.feat-card,.step-card').forEach(el=>{
-  el.style.opacity='0'; el.style.transform='translateY(18px)';
-  el.style.transition='opacity .55s ease, transform .55s ease';
-  revealObs.observe(el);
-});
-
-/* LIVE IMAGE DEMO */
-function setP(t){ document.getElementById('dp').value=t; }
-
+const pxcols=['#9333ea','#7c3aed','#d97706','#06b6d4','#ec4899','#02020a','#05050f'];
+['pxg','pxg2'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const n=60;for(let i=0;i<n;i++){const d=document.createElement('div');d.className='px';d.style.background=pxcols[~~(Math.random()*pxcols.length)];d.style.animationDelay=(Math.random()*2.5)+'s';d.style.animationDuration=(1.5+Math.random()*2)+'s';el.appendChild(d);}});
+setInterval(()=>{document.querySelectorAll('.px').forEach(p=>{if(Math.random()>.7)p.style.background=pxcols[~~(Math.random()*pxcols.length)];});},600);
+function countUp(el,target,suf,dur){const s=performance.now();function step(now){const prog=Math.min((now-s)/dur,1);const e=1-Math.pow(1-prog,3);el.textContent=Math.round(e*target)+suf;if(prog<1)requestAnimationFrame(step);}requestAnimationFrame(step);}
+setTimeout(()=>{countUp(document.getElementById('sn1'),3,'',1400);countUp(document.getElementById('sn2'),100,'%',1700);countUp(document.getElementById('sn3'),2,'s',1500);},800);
+const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';}});},{threshold:.1});
+document.querySelectorAll('.fc,.step,.vcard').forEach(el=>{el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition='opacity .6s ease,transform .6s ease';ro.observe(el);});
+function setP(t){document.getElementById('dp').value=t;}
 async function demoGen(){
-  const prompt = document.getElementById('dp').value.trim();
-  if(!prompt){ alert('Enter a prompt or pick an example'); return; }
-  const btn = document.getElementById('dgb');
-  btn.disabled=true; btn.textContent='Generating...';
+  const prompt=document.getElementById('dp').value.trim();
+  if(!prompt){alert('Enter a prompt or pick an example');return;}
+  const btn=document.getElementById('dgb');btn.disabled=true;btn.textContent='Generating...';
   document.getElementById('dprog').style.display='block';
-  document.getElementById('dstat').className='demo-stat-row show';
-  document.getElementById('dstat').innerHTML='<span class="spin"></span> Calling Pollinations.ai — this takes ~5s...';
-  document.getElementById('dimg').style.display='none';
-  document.getElementById('dem').style.display='flex';
-  let prog=0;
-  const pi = setInterval(()=>{ prog=Math.min(prog+5,88); document.getElementById('dpf').style.width=prog+'%'; },400);
+  document.getElementById('dstat').className='dstat show';
+  document.getElementById('dstat').innerHTML='<span class="spin"></span> Calling Pollinations.ai...';
+  document.getElementById('dimg').style.display='none';document.getElementById('dem').style.display='flex';
+  let p=0;const pi=setInterval(()=>{p=Math.min(p+4,88);document.getElementById('dpf').style.width=p+'%';},400);
   try{
-    const resp = await fetch('/demo_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
-    const data = await resp.json();
-    clearInterval(pi);
-    document.getElementById('dpf').style.width='100%';
-    if(data.image_b64){
-      const img=document.getElementById('dimg');
-      img.src='data:image/png;base64,'+data.image_b64;
-      img.style.display='block';
-      document.getElementById('dem').style.display='none';
-      document.getElementById('dstat').innerHTML='✓ Generated in '+data.time+'s — <a href="/signup" style="color:#a855f7;text-decoration:none">Sign up for full access →</a>';
-    } else {
-      document.getElementById('dstat').textContent='Error: '+(data.error||'Unknown');
-    }
-  }catch(e){ clearInterval(pi); document.getElementById('dstat').textContent='Error: '+e.message; }
-  setTimeout(()=>{ document.getElementById('dprog').style.display='none'; document.getElementById('dpf').style.width='0'; },1200);
-  btn.disabled=false; btn.textContent='Generate image →';
+    const resp=await fetch('/demo_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    const data=await resp.json();clearInterval(pi);document.getElementById('dpf').style.width='100%';
+    if(data.image_b64){const img=document.getElementById('dimg');img.src='data:image/png;base64,'+data.image_b64;img.style.display='block';document.getElementById('dem').style.display='none';document.getElementById('dstat').innerHTML='&#10003; Generated in '+data.time+'s &mdash; <a href="/signup" style="color:#d97706;text-decoration:none;letter-spacing:.04em">Activate Full Access &rarr;</a>';}
+    else{document.getElementById('dstat').textContent='Error: '+(data.error||'Unknown');}
+  }catch(e){clearInterval(pi);document.getElementById('dstat').textContent='Error: '+e.message;}
+  setTimeout(()=>{document.getElementById('dprog').style.display='none';document.getElementById('dpf').style.width='0';},1200);
+  btn.disabled=false;btn.textContent='Generate Image \u2192';
 }
 </script>
 </body>
