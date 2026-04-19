@@ -1151,13 +1151,13 @@ async function runImageBattle(){
   });
   const enhancedPrompt=prompt+', highly detailed, high quality, sharp focus, cinematic lighting, 8k resolution, professional photography';
   const rawPrompt=prompt;
-  function makeReq(p){
-    return fetch('/generate_image',{method:'POST',
+  function makeReq(p, seed){
+    return fetch('/generate_image_raw',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:p,width:sz,height:sz,steps:15})
+      body:JSON.stringify({prompt:p, width:sz, height:sz, seed:seed})
     }).then(function(r){return r.json();});
   }
-  const results=await Promise.allSettled([makeReq(enhancedPrompt), makeReq(rawPrompt)]);
+  const results=await Promise.allSettled([makeReq(enhancedPrompt, 42), makeReq(rawPrompt, 99)]);
   function showImg(side, res){
     const wrap=document.getElementById('bi-'+side+'-wrap');
     if(res.status==='fulfilled'&&res.value.image_b64){
@@ -1166,7 +1166,7 @@ async function runImageBattle(){
       img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px';
       wrap.innerHTML=''; wrap.appendChild(img);
       const timEl=document.getElementById('bi-'+side+'-time');
-      if(timEl&&res.value.time) timEl.textContent=res.value.time;
+      if(timEl) timEl.textContent=res.value.time||'—';
       document.getElementById('bi-'+side+'-meta').style.display='block';
       document.getElementById('bi-'+side+'-vote-wrap').style.display='block';
     } else {
@@ -1507,6 +1507,41 @@ def api_generate_image():
             return jsonify({"error": message})
     except Exception as e:
         return jsonify({"error": str(e)})
+
+
+@app.route("/generate_image_raw", methods=["POST"])
+def api_generate_image_raw():
+    """Image generation with seed control — used by image battle."""
+    if "username" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    try:
+        data    = request.get_json(force=True)
+        prompt  = (data.get("prompt") or "").strip()
+        if not prompt:
+            return jsonify({"error": "No prompt provided"})
+        width   = int(data.get("width",  512))
+        height  = int(data.get("height", 512))
+        seed    = int(data.get("seed",   42))
+        import urllib.parse, time as _time
+        start   = _time.time()
+        enc     = urllib.parse.quote(prompt)
+        url     = (f"https://image.pollinations.ai/prompt/{enc}"
+                   f"?width={width}&height={height}&seed={seed}&nologo=true")
+        resp    = requests.get(url, timeout=60)
+        elapsed = _time.time() - start
+        if resp.status_code == 200 and resp.headers.get("content-type","").startswith("image"):
+            from PIL import Image as PILImg
+            import io as _io
+            img = PILImg.open(_io.BytesIO(resp.content))
+            buf = _io.BytesIO()
+            img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode()
+            return jsonify({"image_b64": b64, "time": f"{elapsed:.1f}s"})
+        else:
+            return jsonify({"error": f"Pollinations error {resp.status_code}"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 @app.route("/history")
 def api_history():
