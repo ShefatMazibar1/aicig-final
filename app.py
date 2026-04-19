@@ -896,8 +896,7 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
         </div>
       </div>
 
-      <div class="panel" id="panel-history">
-                <div id="panel-battle" class="panel">
+      <div id="panel-battle" class="panel">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
             <div style="font-size:18px;font-weight:700">Model Battle</div>
             <div style="font-size:11px;color:#f59e0b;background:#f59e0b15;border:1px solid #f59e0b40;border-radius:99px;padding:3px 10px;letter-spacing:.06em">BETA</div>
@@ -969,6 +968,8 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
           </div>
         </div>
 
+        
+      <div class="panel" id="panel-history">
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">Total generations</div></div>
           <div class="stat-card"><div class="stat-num" id="s-text">0</div><div class="stat-lbl">Text generations</div></div>
@@ -1322,7 +1323,7 @@ def api_generate_text():
         bleu = 0.0
         if evaluator:
             try:
-                bleu = evaluator.bleu_score(prompt, text)
+                bleu = evaluator.bleu_score(text, prompt)
             except:
                 pass
         if logger:
@@ -1407,3 +1408,4 @@ def health():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
+    
