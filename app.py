@@ -14,55 +14,66 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 USERS_FILE = "users.json"
 
-def load_users():
-    # Try file first
-    if os.path.exists(USERS_FILE):
-        try:
-            with open(USERS_FILE) as f:
-                return json.load(f)
-        except:
-            pass
-    # Try environment variable as backup (survives redeploys on Render)
-    env_users = os.environ.get("USERS_DATA", "")
-    if env_users:
-        try:
-            return json.loads(env_users)
-        except:
-            pass
-    return {}
-
-def save_users(users):
-    # Save to file
-    try:
-        with open(USERS_FILE, "w") as f:
-            json.dump(users, f, indent=2)
-    except:
-        pass
-    # Also save to a persistent backup file in /tmp which survives longer
-    try:
-        with open("/tmp/aicig_users.json", "w") as f:
-            json.dump(users, f, indent=2)
-    except:
-        pass
-
 def load_users_all():
+    """
+    Load users from ALL sources, merging them.
+    Priority: env var base users (permanent) + file/tmp new signups (session).
+    The env var USERS_DATA always wins for pre-seeded accounts.
+    """
     users = {}
-    # Load from all sources and merge
-    for path in [USERS_FILE, "/tmp/aicig_users.json"]:
-        if os.path.exists(path):
-            try:
-                with open(path) as f:
-                    data = json.load(f)
-                    users.update(data)
-            except:
-                pass
+
+    # 1. Load pre-seeded users from environment variable (PERMANENT - survives all redeploys)
     env_users = os.environ.get("USERS_DATA", "")
     if env_users:
         try:
             users.update(json.loads(env_users))
-        except:
+        except Exception:
             pass
+
+    # 2. Merge in any NEW signups from /tmp (survives restarts, not redeploys)
+    for path in ["/tmp/aicig_users.json", USERS_FILE]:
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                    # Only add users NOT already in env var (don't overwrite permanent accounts)
+                    for k, v in data.items():
+                        if k not in users:
+                            users[k] = v
+            except Exception:
+                pass
+
     return users
+
+def load_users():
+    return load_users_all()
+
+def save_users(users):
+    """Save new signups to /tmp and local file so they persist across restarts."""
+    # Get env var users so we don't re-save them (they live in env var)
+    env_users = {}
+    env_raw = os.environ.get("USERS_DATA", "")
+    if env_raw:
+        try:
+            env_users = json.loads(env_raw)
+        except Exception:
+            pass
+
+    # Only save users that are NOT in the env var (i.e. new signups)
+    new_signups = {k: v for k, v in users.items() if k not in env_users}
+
+    for path in ["/tmp/aicig_users.json", USERS_FILE]:
+        try:
+            # Load existing new signups from file and merge
+            existing = {}
+            if os.path.exists(path):
+                with open(path) as f:
+                    existing = json.load(f)
+            existing.update(new_signups)
+            with open(path, "w") as f:
+                json.dump(existing, f, indent=2)
+        except Exception:
+            pass
 
 try:
     from model_manager import ModelManager
@@ -773,6 +784,10 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="5.5" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="3" width="5.5" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
       Generate both
     </div>
+    <div class="nav-item" onclick="switchTab('battle',this)" style="color:#f59e0b">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 4h4l-3 2.5 1 4L8 10l-3.5 2.5 1-4L2.5 6h4z" fill="currentColor"/></svg>
+      Model battle
+    </div>
     <div class="nav-section">Analytics</div>
     <div class="nav-item" onclick="switchTab('history',this)">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3.5l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
@@ -882,6 +897,78 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
       </div>
 
       <div class="panel" id="panel-history">
+                <div id="panel-battle" class="panel">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+            <div style="font-size:18px;font-weight:700">Model Battle</div>
+            <div style="font-size:11px;color:#f59e0b;background:#f59e0b15;border:1px solid #f59e0b40;border-radius:99px;padding:3px 10px;letter-spacing:.06em">BETA</div>
+            <div style="font-size:11px;color:#9ca3af;margin-left:auto">Same prompt — both models — you pick the winner</div>
+          </div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-label"><span class="label-dot" style="background:#f59e0b"></span>Battle prompt</div>
+            <textarea id="b-prompt" placeholder="Write about the future of AI... (both models generate simultaneously)" rows="3"></textarea>
+            <div class="ctrl-row" style="margin-top:12px">
+              <div class="ct">
+                <div class="ctrl-label">Max tokens</div>
+                <input type="range" min="100" max="500" value="250" id="b-tokens" oninput="document.getElementById('b-tok-val').textContent=this.value">
+                <span id="b-tok-val" class="range-val">250</span>
+              </div>
+              <div class="ct">
+                <div class="ctrl-label">Temperature</div>
+                <input type="range" min="1" max="15" value="7" step="1" id="b-temp" oninput="document.getElementById('b-temp-val').textContent=(this.value/10).toFixed(1)">
+                <span id="b-temp-val" class="range-val">0.7</span>
+              </div>
+            </div>
+            <button class="gen-btn" id="b-btn" onclick="runBattle()" style="margin-top:14px;width:100%;background:linear-gradient(135deg,#f59e0b,#d97706)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M8 2l1.5 4h4l-3 2.5 1 4L8 10l-3.5 2.5 1-4L2.5 6h4z" fill="white"/></svg>
+              Start Battle
+            </button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="card" style="border-color:#9333ea40">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="font-size:13px;font-weight:700;color:#c084fc">Qwen 2.5 7B</div>
+                <div style="font-size:10px;color:#c084fc;background:#9333ea20;border:1px solid #9333ea40;border-radius:99px;padding:2px 8px;display:none" id="b-qwen-badge">Alibaba Cloud</div>
+              </div>
+              <div id="b-qwen-out" style="min-height:180px;font-size:13px;color:#6b7280;line-height:1.7;white-space:pre-wrap">Waiting for battle to start...</div>
+              <div id="b-qwen-meta" style="margin-top:10px;display:none">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                  <span id="b-qwen-bleu" style="font-size:10px;background:#9333ea20;color:#c084fc;border:1px solid #9333ea30;border-radius:99px;padding:2px 8px"></span>
+                  <span id="b-qwen-time" style="font-size:10px;background:#06b6d420;color:#67e8f9;border:1px solid #06b6d430;border-radius:99px;padding:2px 8px"></span>
+                  <span id="b-qwen-words" style="font-size:10px;background:#d9770620;color:#fbbf24;border:1px solid #d9770630;border-radius:99px;padding:2px 8px"></span>
+                </div>
+                <button id="vote-qwen" onclick="vote('qwen')" style="width:100%;padding:9px;border:1px solid #9333ea60;border-radius:6px;background:transparent;color:#c084fc;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:all .2s">Vote Qwen Winner</button>
+              </div>
+            </div>
+            <div class="card" style="border-color:#06b6d440">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="font-size:13px;font-weight:700;color:#67e8f9">Llama 3.1 8B</div>
+                <div style="font-size:10px;color:#67e8f9;background:#06b6d420;border:1px solid #06b6d440;border-radius:99px;padding:2px 8px;display:none" id="b-llama-badge">Meta AI</div>
+              </div>
+              <div id="b-llama-out" style="min-height:180px;font-size:13px;color:#6b7280;line-height:1.7;white-space:pre-wrap">Waiting for battle to start...</div>
+              <div id="b-llama-meta" style="margin-top:10px;display:none">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                  <span id="b-llama-bleu" style="font-size:10px;background:#9333ea20;color:#c084fc;border:1px solid #9333ea30;border-radius:99px;padding:2px 8px"></span>
+                  <span id="b-llama-time" style="font-size:10px;background:#06b6d420;color:#67e8f9;border:1px solid #06b6d430;border-radius:99px;padding:2px 8px"></span>
+                  <span id="b-llama-words" style="font-size:10px;background:#d9770620;color:#fbbf24;border:1px solid #d9770630;border-radius:99px;padding:2px 8px"></span>
+                </div>
+                <button id="vote-llama" onclick="vote('llama')" style="width:100%;padding:9px;border:1px solid #06b6d460;border-radius:6px;background:transparent;color:#67e8f9;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:all .2s">Vote Llama Winner</button>
+              </div>
+            </div>
+          </div>
+          <div id="battle-result" style="display:none;margin-top:16px;text-align:center;padding:16px;border-radius:10px">
+            <div id="battle-winner-text" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
+            <div id="battle-winner-sub" style="font-size:12px;color:#9ca3af"></div>
+          </div>
+          <div style="margin-top:16px;background:var(--bg2);border-radius:10px;padding:14px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:#6b7280;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Session Battle Stats</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+              <div><div style="font-size:24px;font-weight:700;color:#c084fc" id="stat-qwen-wins">0</div><div style="font-size:10px;color:#6b7280;margin-top:2px">Qwen wins</div></div>
+              <div><div style="font-size:24px;font-weight:700;color:#d97706" id="stat-battles">0</div><div style="font-size:10px;color:#6b7280;margin-top:2px">Battles fought</div></div>
+              <div><div style="font-size:24px;font-weight:700;color:#67e8f9" id="stat-llama-wins">0</div><div style="font-size:10px;color:#6b7280;margin-top:2px">Llama wins</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">Total generations</div></div>
           <div class="stat-card"><div class="stat-num" id="s-text">0</div><div class="stat-lbl">Text generations</div></div>
@@ -900,7 +987,75 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
   </div>
 </div>
 <script>
-const tabTitles={text:'Text generation',image:'Image generation',both:'Generate both',history:'History & analytics'};
+const tabTitles={text:'Text generation',image:'Image generation',both:'Generate both',battle:'Model battle ★',history:'History & analytics'};
+
+let battleStats={qwen:0,llama:0,total:0},battleDone=false;
+async function runBattle(){
+  const prompt=document.getElementById('b-prompt').value.trim();
+  if(!prompt){alert('Enter a prompt first');return;}
+  const maxTok=parseInt(document.getElementById('b-tokens').value);
+  const temp=parseFloat(document.getElementById('b-temp').value)/10;
+  battleDone=false;
+  const btn=document.getElementById('b-btn');
+  btn.disabled=true;btn.textContent='Battling...';
+  document.getElementById('battle-result').style.display='none';
+  ['qwen','llama'].forEach(m=>{
+    document.getElementById('b-'+m+'-meta').style.display='none';
+    document.getElementById('b-'+m+'-badge').style.display='none';
+    document.getElementById('b-'+m+'-out').style.color='#9ca3af';
+    document.getElementById('b-'+m+'-out').textContent='Generating...';
+    document.getElementById('vote-'+m).disabled=false;
+    document.getElementById('vote-'+m).style.opacity='1';
+    document.getElementById('vote-'+m).style.background='transparent';
+  });
+  const body={prompt,max_tokens:maxTok,temperature:temp,profile:'balanced'};
+  const [r1,r2]=await Promise.allSettled([
+    fetch('/generate_text',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({...body,model_key:'qwen-7b'})}).then(r=>r.json()),
+    fetch('/generate_text',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({...body,model_key:'llama-8b'})}).then(r=>r.json()),
+  ]);
+  function showResult(side,res,col){
+    if(res.status==='fulfilled'&&res.value.text){
+      const d=res.value,words=d.text.trim().split(/\s+/).length,meta=d.meta||'';
+      const bleu=(meta.match(/BLEU:\s*([\d.]+)/)||[])[1]||'—';
+      const t=(meta.match(/Time:\s*([\d.]+)/)||[])[1]||'—';
+      document.getElementById('b-'+side+'-out').textContent=d.text;
+      document.getElementById('b-'+side+'-out').style.color='#e0e0ff';
+      document.getElementById('b-'+side+'-bleu').textContent='BLEU '+bleu;
+      document.getElementById('b-'+side+'-time').textContent=t+'s';
+      document.getElementById('b-'+side+'-words').textContent=words+' words';
+      document.getElementById('b-'+side+'-meta').style.display='block';
+      document.getElementById('b-'+side+'-badge').style.display='inline-block';
+    } else {
+      document.getElementById('b-'+side+'-out').textContent='Error: '+(res.value?.error||'Failed');
+    }
+  }
+  showResult('qwen',r1,'#c084fc');
+  showResult('llama',r2,'#67e8f9');
+  battleDone=true;btn.disabled=false;btn.textContent='Battle Again';
+}
+function vote(winner){
+  if(!battleDone)return;
+  battleStats.total++;battleStats[winner]++;
+  document.getElementById('stat-qwen-wins').textContent=battleStats.qwen;
+  document.getElementById('stat-llama-wins').textContent=battleStats.llama;
+  document.getElementById('stat-battles').textContent=battleStats.total;
+  const res=document.getElementById('battle-result');
+  const name=winner==='qwen'?'Qwen 2.5 7B':'Llama 3.1 8B';
+  const col=winner==='qwen'?'#c084fc':'#67e8f9';
+  res.style.cssText='display:block;margin-top:16px;text-align:center;padding:16px;border-radius:10px;background:'+(winner==='qwen'?'#9333ea18':'#06b6d418')+';border:1px solid '+col+'40';
+  document.getElementById('battle-winner-text').style.color=col;
+  document.getElementById('battle-winner-text').textContent=name+' wins this round!';
+  document.getElementById('battle-winner-sub').textContent='Session: Qwen '+battleStats.qwen+' — Llama '+battleStats.llama+' ('+battleStats.total+' battles)';
+  ['qwen','llama'].forEach(m=>{
+    const vb=document.getElementById('vote-'+m);
+    vb.disabled=true;
+    vb.style.opacity=m===winner?'1':'0.3';
+    if(m===winner)vb.style.background=col+'22';
+  });
+}
+
 function switchTab(name,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -1070,12 +1225,20 @@ def signup():
                 message='<div class="error-msg">Username already taken. Please choose another.</div>'
             )
 
-        users[username] = {
+        import json as _json
+        new_entry = {
             "email": email,
             "password": generate_password_hash(password),
             "created": time.strftime("%Y-%m-%dT%H:%M:%S")
         }
+        users[username] = new_entry
         save_users(users)
+
+        # ── Print to Render logs so admin can add to USERS_DATA env var ──
+        print(f"[NEW SIGNUP] Username: {username}")
+        print(f"[NEW SIGNUP] Add this to USERS_DATA env var:")
+        print(f"[NEW SIGNUP] {_json.dumps({username: new_entry})}")
+
         session["username"] = username
         return redirect("/app")
 
