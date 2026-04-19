@@ -1151,13 +1151,13 @@ async function runImageBattle(){
   });
   const enhancedPrompt=prompt+', highly detailed, high quality, sharp focus, cinematic lighting, 8k resolution, professional photography';
   const rawPrompt=prompt;
-  function makeReq(p, seed){
-    return fetch('/generate_image_raw',{method:'POST',
+  function makeReq(p){
+    return fetch('/generate_image',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:p, width:sz, height:sz, seed:seed})
+      body:JSON.stringify({prompt:p, width:sz, height:sz, steps:15})
     }).then(function(r){return r.json();});
   }
-  const results=await Promise.allSettled([makeReq(enhancedPrompt, 42), makeReq(rawPrompt, 99)]);
+  const results=await Promise.allSettled([makeReq(enhancedPrompt), makeReq(rawPrompt)]);
   function showImg(side, res){
     const wrap=document.getElementById('bi-'+side+'-wrap');
     if(res.status==='fulfilled'&&res.value.image_b64){
@@ -1166,7 +1166,10 @@ async function runImageBattle(){
       img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px';
       wrap.innerHTML=''; wrap.appendChild(img);
       const timEl=document.getElementById('bi-'+side+'-time');
-      if(timEl) timEl.textContent=res.value.time||'—';
+      if(timEl){
+        const t=(res.value.time)||(res.value.meta||'').match(/([\d.]+s)/)?.[1]||'done';
+        timEl.textContent=t;
+      }
       document.getElementById('bi-'+side+'-meta').style.display='block';
       document.getElementById('bi-'+side+'-vote-wrap').style.display='block';
     } else {
