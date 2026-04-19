@@ -1139,47 +1139,72 @@ async function runImageBattle(){
   const sz=parseInt(document.getElementById('bi-size').value);
   imgBattleDone=false;
   const btn=document.getElementById('bi-btn');
-  btn.disabled=true; btn.textContent='Generating both...';
+  btn.disabled=true; btn.textContent='Generating...';
   document.getElementById('bi-result').style.display='none';
+
   ['enhanced','raw'].forEach(function(side){
     const wrap=document.getElementById('bi-'+side+'-wrap');
-    wrap.innerHTML='<div style="width:32px;height:32px;border:3px solid #9333ea44;border-top-color:#9333ea;border-radius:50%;animation:spin .8s linear infinite;margin:auto"></div>';
+    wrap.innerHTML='<div style="width:32px;height:32px;border:3px solid #9333ea44;border-top-color:#9333ea;border-radius:50%;animation:spin .8s linear infinite;margin:auto;margin-top:40%"></div>';
     document.getElementById('bi-'+side+'-meta').style.display='none';
     document.getElementById('bi-'+side+'-vote-wrap').style.display='none';
     const vb=document.getElementById('vote-img-'+side);
     if(vb){vb.disabled=false;vb.style.opacity='1';vb.style.background='transparent';}
   });
-  const enhancedPrompt=prompt+', highly detailed, high quality, sharp focus, cinematic lighting, 8k resolution, professional photography';
-  const rawPrompt=prompt;
-  function makeReq(p){
-    return fetch('/generate_image',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:p, width:sz, height:sz, steps:15})
-    }).then(function(r){return r.json();});
-  }
-  const results=await Promise.allSettled([makeReq(enhancedPrompt), makeReq(rawPrompt)]);
-  function showImg(side, res){
-    const wrap=document.getElementById('bi-'+side+'-wrap');
-    if(res.status==='fulfilled'&&res.value.image_b64){
+
+  // ── ENHANCED: via server route (adds quality keywords server-side) ──────────
+  const t1=Date.now();
+  fetch('/generate_image',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:prompt,width:sz,height:sz,steps:15})
+  }).then(function(r){return r.json();}).then(function(d){
+    const wrap=document.getElementById('bi-enhanced-wrap');
+    if(d.image_b64){
       const img=document.createElement('img');
-      img.src='data:image/png;base64,'+res.value.image_b64;
+      img.src='data:image/png;base64,'+d.image_b64;
       img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px';
       wrap.innerHTML=''; wrap.appendChild(img);
-      const timEl=document.getElementById('bi-'+side+'-time');
-      if(timEl){
-        const t=(res.value.time)||(res.value.meta||'').match(/([\d.]+s)/)?.[1]||'done';
-        timEl.textContent=t;
-      }
-      document.getElementById('bi-'+side+'-meta').style.display='block';
-      document.getElementById('bi-'+side+'-vote-wrap').style.display='block';
+      document.getElementById('bi-enhanced-time').textContent=((Date.now()-t1)/1000).toFixed(1)+'s';
+      document.getElementById('bi-enhanced-meta').style.display='block';
+      document.getElementById('bi-enhanced-vote-wrap').style.display='block';
     } else {
-      wrap.innerHTML='<span style="font-size:11px;color:#ef4444;margin:auto">Error - try again</span>';
+      wrap.innerHTML='<span style="color:#ef4444;font-size:11px;margin:auto">'+( d.error||'Error')+'</span>';
+    }
+    checkBothDone();
+  }).catch(function(){
+    document.getElementById('bi-enhanced-wrap').innerHTML='<span style="color:#ef4444;font-size:11px;margin:auto">Network error</span>';
+    checkBothDone();
+  });
+
+  // ── RAW: load directly in browser via <img src> — bypasses server entirely ──
+  const t2=Date.now();
+  const rawEnc=encodeURIComponent(prompt);
+  const rawUrl='https://image.pollinations.ai/prompt/'+rawEnc+'?width='+sz+'&height='+sz+'&seed=99&nologo=true';
+  const rawImg=document.createElement('img');
+  rawImg.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px;display:none';
+  const rawWrap=document.getElementById('bi-raw-wrap');
+  rawWrap.innerHTML='<div style="width:32px;height:32px;border:3px solid #ec489944;border-top-color:#ec4899;border-radius:50%;animation:spin .8s linear infinite;margin:auto;margin-top:40%"></div>';
+  rawImg.onload=function(){
+    rawWrap.innerHTML=''; rawWrap.appendChild(rawImg);
+    rawImg.style.display='block';
+    document.getElementById('bi-raw-time').textContent=((Date.now()-t2)/1000).toFixed(1)+'s';
+    document.getElementById('bi-raw-meta').style.display='block';
+    document.getElementById('bi-raw-vote-wrap').style.display='block';
+    checkBothDone();
+  };
+  rawImg.onerror=function(){
+    rawWrap.innerHTML='<span style="color:#ef4444;font-size:11px;margin:auto">Could not load — try again</span>';
+    checkBothDone();
+  };
+  rawImg.src=rawUrl;
+
+  let doneCount=0;
+  function checkBothDone(){
+    doneCount++;
+    if(doneCount>=2){
+      imgBattleDone=true;
+      btn.disabled=false; btn.textContent='Battle Again';
     }
   }
-  showImg('enhanced', results[0]);
-  showImg('raw',      results[1]);
-  imgBattleDone=true;
-  btn.disabled=false; btn.textContent='Battle Again';
 }
 
 function voteImage(winner){
