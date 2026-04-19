@@ -900,24 +900,28 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
             <div style="font-size:18px;font-weight:700">Model Battle</div>
             <div style="font-size:11px;color:#f59e0b;background:#f59e0b15;border:1px solid #f59e0b40;border-radius:99px;padding:3px 10px;letter-spacing:.06em">BETA</div>
-            <div style="font-size:11px;color:#9ca3af;margin-left:auto">Same prompt — both models — you pick the winner</div>
+            <div style="display:flex;gap:6px;margin-left:auto;background:var(--bg2);border-radius:8px;padding:4px">
+              <button id="bt-tab-text" onclick="switchBattleTab('text')" style="padding:5px 14px;border-radius:6px;border:none;background:#9333ea;color:white;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em">Text</button>
+              <button id="bt-tab-image" onclick="switchBattleTab('image')" style="padding:5px 14px;border-radius:6px;border:none;background:transparent;color:#9ca3af;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em">Image</button>
+            </div>
           </div>
+          <div id="bt-text-section">
           <div class="card" style="margin-bottom:16px">
             <div class="card-label"><span class="label-dot" style="background:#f59e0b"></span>Battle prompt</div>
-            <textarea id="b-prompt" placeholder="Write about the future of AI... (both models generate simultaneously)" rows="3"></textarea>
+            <textarea id="bt-prompt" placeholder="Write about the future of AI... (both models generate simultaneously)" rows="3"></textarea>
             <div class="ctrl-row" style="margin-top:12px">
               <div class="ct">
                 <div class="ctrl-label">Max tokens</div>
-                <input type="range" min="100" max="500" value="250" id="b-tokens" oninput="document.getElementById('b-tok-val').textContent=this.value">
-                <span id="b-tok-val" class="range-val">250</span>
+                <input type="range" min="100" max="500" value="250" id="bt-tokens" oninput="document.getElementById('bt-tok-val').textContent=this.value">
+                <span id="bt-tok-val" class="range-val">250</span>
               </div>
               <div class="ct">
                 <div class="ctrl-label">Temperature</div>
-                <input type="range" min="1" max="15" value="7" step="1" id="b-temp" oninput="document.getElementById('b-temp-val').textContent=(this.value/10).toFixed(1)">
-                <span id="b-temp-val" class="range-val">0.7</span>
+                <input type="range" min="1" max="15" value="7" step="1" id="bt-temp" oninput="document.getElementById('bt-temp-val').textContent=(this.value/10).toFixed(1)">
+                <span id="bt-temp-val" class="range-val">0.7</span>
               </div>
             </div>
-            <button class="gen-btn" id="b-btn" onclick="runBattle()" style="margin-top:14px;width:100%;background:linear-gradient(135deg,#f59e0b,#d97706)">
+            <button class="gen-btn" id="bt-btn" onclick="runBattle()" style="margin-top:14px;width:100%;background:linear-gradient(135deg,#f59e0b,#d97706)">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M8 2l1.5 4h4l-3 2.5 1 4L8 10l-3.5 2.5 1-4L2.5 6h4z" fill="white"/></svg>
               Start Battle
             </button>
@@ -958,6 +962,62 @@ img.result{max-width:100%;border-radius:10px;display:none;border:1px solid var(-
             <div id="battle-winner-text" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
             <div id="battle-winner-sub" style="font-size:12px;color:#9ca3af"></div>
           </div>
+          </div>
+
+          <div id="bt-image-section" style="display:none">
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-label"><span class="label-dot" style="background:#ec4899"></span>Image battle prompt</div>
+              <textarea id="bi-prompt" placeholder="A futuristic AI city at night with purple neon lights..." rows="3"></textarea>
+              <div class="ctrl-row" style="margin-top:12px">
+                <div class="ct">
+                  <div class="ctrl-label">Size</div>
+                  <select id="bi-size" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text1);padding:6px 8px;font-size:12px;width:100%">
+                    <option value="384">384 × 384</option>
+                    <option value="512" selected>512 × 512</option>
+                    <option value="768">768 × 512</option>
+                  </select>
+                </div>
+              </div>
+              <button class="gen-btn" id="bi-btn" onclick="runImageBattle()" style="margin-top:14px;width:100%;background:linear-gradient(135deg,#ec4899,#9333ea)">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M8 2l1.5 4h4l-3 2.5 1 4L8 10l-3.5 2.5 1-4L2.5 6h4z" fill="white"/></svg>
+                Battle Images
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div class="card" style="border-color:#9333ea40">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:13px;font-weight:700;color:#c084fc">Enhanced Prompt</div>
+                  <div style="font-size:9px;color:#c084fc;background:#9333ea15;border:1px solid #9333ea30;border-radius:99px;padding:2px 8px">+ quality keywords</div>
+                </div>
+                <div id="bi-enhanced-wrap" style="aspect-ratio:1;background:var(--bg2);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px">
+                  <span style="font-size:11px;color:#6b7280">Image appears here</span>
+                </div>
+                <div id="bi-enhanced-meta" style="display:none">
+                  <span id="bi-enhanced-time" style="font-size:10px;background:#06b6d420;color:#67e8f9;border:1px solid #06b6d430;border-radius:99px;padding:2px 8px"></span>
+                </div>
+                <div id="bi-enhanced-vote-wrap" style="display:none;margin-top:10px">
+                  <button onclick="voteImage('enhanced')" id="vote-img-enhanced" style="width:100%;padding:9px;border:1px solid #9333ea60;border-radius:6px;background:transparent;color:#c084fc;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s">Vote Enhanced Winner</button>
+                </div>
+              </div>
+              <div class="card" style="border-color:#ec489940">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:13px;font-weight:700;color:#f9a8d4">Raw Prompt</div>
+                  <div style="font-size:9px;color:#f9a8d4;background:#ec489915;border:1px solid #ec489930;border-radius:99px;padding:2px 8px">prompt only</div>
+                </div>
+                <div id="bi-raw-wrap" style="aspect-ratio:1;background:var(--bg2);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px">
+                  <span style="font-size:11px;color:#6b7280">Image appears here</span>
+                </div>
+                <div id="bi-raw-meta" style="display:none">
+                  <span id="bi-raw-time" style="font-size:10px;background:#06b6d420;color:#67e8f9;border:1px solid #06b6d430;border-radius:99px;padding:2px 8px"></span>
+                </div>
+                <div id="bi-raw-vote-wrap" style="display:none;margin-top:10px">
+                  <button onclick="voteImage('raw')" id="vote-img-raw" style="width:100%;padding:9px;border:1px solid #ec489960;border-radius:6px;background:transparent;color:#f9a8d4;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s">Vote Raw Winner</button>
+                </div>
+              </div>
+            </div>
+            <div id="bi-result" style="display:none;margin-top:14px;text-align:center;padding:14px;border-radius:10px"></div>
+          </div>
+
           <div style="margin-top:16px;background:var(--bg2);border-radius:10px;padding:14px;border:1px solid var(--border)">
             <div style="font-size:11px;color:#6b7280;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Session Battle Stats</div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
@@ -992,12 +1052,12 @@ const tabTitles={text:'Text generation',image:'Image generation',both:'Generate 
 
 let battleStats={qwen:0,llama:0,total:0},battleDone=false;
 async function runBattle(){
-  const prompt=document.getElementById('b-prompt').value.trim();
+  const prompt=document.getElementById('bt-prompt').value.trim();
   if(!prompt){alert('Enter a prompt first');return;}
-  const maxTok=parseInt(document.getElementById('b-tokens').value);
-  const temp=parseFloat(document.getElementById('b-temp').value)/10;
+  const maxTok=parseInt(document.getElementById('bt-tokens').value);
+  const temp=parseFloat(document.getElementById('bt-temp').value)/10;
   battleDone=false;
-  const btn=document.getElementById('b-btn');
+  const btn=document.getElementById('bt-btn');
   btn.disabled=true;btn.textContent='Battling...';
   document.getElementById('battle-result').style.display='none';
   ['qwen','llama'].forEach(m=>{
@@ -1056,6 +1116,86 @@ function vote(winner){
     if(m===winner)vb.style.background=col+'22';
   });
 }
+
+function switchBattleTab(tab){
+  document.getElementById('bt-text-section').style.display  = tab==='text'  ? 'block':'none';
+  document.getElementById('bt-image-section').style.display = tab==='image' ? 'block':'none';
+  const tBtn=document.getElementById('bt-tab-text');
+  const iBtn=document.getElementById('bt-tab-image');
+  if(tab==='text'){
+    tBtn.style.background='#9333ea';tBtn.style.color='white';
+    iBtn.style.background='transparent';iBtn.style.color='#9ca3af';
+  } else {
+    iBtn.style.background='#ec4899';iBtn.style.color='white';
+    tBtn.style.background='transparent';tBtn.style.color='#9ca3af';
+  }
+}
+
+let imgBattleDone=false, imgBattleStats={enhanced:0,raw:0,total:0};
+
+async function runImageBattle(){
+  const prompt=document.getElementById('bi-prompt').value.trim();
+  if(!prompt){alert('Enter a prompt first');return;}
+  const sz=parseInt(document.getElementById('bi-size').value);
+  imgBattleDone=false;
+  const btn=document.getElementById('bi-btn');
+  btn.disabled=true; btn.textContent='Generating both...';
+  document.getElementById('bi-result').style.display='none';
+  ['enhanced','raw'].forEach(function(side){
+    const wrap=document.getElementById('bi-'+side+'-wrap');
+    wrap.innerHTML='<div style="width:32px;height:32px;border:3px solid #9333ea44;border-top-color:#9333ea;border-radius:50%;animation:spin .8s linear infinite;margin:auto"></div>';
+    document.getElementById('bi-'+side+'-meta').style.display='none';
+    document.getElementById('bi-'+side+'-vote-wrap').style.display='none';
+    const vb=document.getElementById('vote-img-'+side);
+    if(vb){vb.disabled=false;vb.style.opacity='1';vb.style.background='transparent';}
+  });
+  const enhancedPrompt=prompt+', highly detailed, high quality, sharp focus, cinematic lighting, 8k resolution, professional photography';
+  const rawPrompt=prompt;
+  function makeReq(p){
+    return fetch('/generate_image',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:p,width:sz,height:sz,steps:15})
+    }).then(function(r){return r.json();});
+  }
+  const results=await Promise.allSettled([makeReq(enhancedPrompt), makeReq(rawPrompt)]);
+  function showImg(side, res){
+    const wrap=document.getElementById('bi-'+side+'-wrap');
+    if(res.status==='fulfilled'&&res.value.image_b64){
+      const img=document.createElement('img');
+      img.src='data:image/png;base64,'+res.value.image_b64;
+      img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px';
+      wrap.innerHTML=''; wrap.appendChild(img);
+      const timEl=document.getElementById('bi-'+side+'-time');
+      if(timEl&&res.value.time) timEl.textContent=res.value.time;
+      document.getElementById('bi-'+side+'-meta').style.display='block';
+      document.getElementById('bi-'+side+'-vote-wrap').style.display='block';
+    } else {
+      wrap.innerHTML='<span style="font-size:11px;color:#ef4444;margin:auto">Error - try again</span>';
+    }
+  }
+  showImg('enhanced', results[0]);
+  showImg('raw',      results[1]);
+  imgBattleDone=true;
+  btn.disabled=false; btn.textContent='Battle Again';
+}
+
+function voteImage(winner){
+  if(!imgBattleDone)return;
+  imgBattleStats.total++; imgBattleStats[winner]++;
+  const name=winner==='enhanced'?'Enhanced Prompt':'Raw Prompt';
+  const col =winner==='enhanced'?'#c084fc':'#f9a8d4';
+  const bg  =winner==='enhanced'?'#9333ea18':'#ec489918';
+  const res=document.getElementById('bi-result');
+  res.style.cssText='display:block;margin-top:14px;text-align:center;padding:14px;border-radius:10px;background:'+bg+';border:1px solid '+col+'40';
+  res.innerHTML='<div style="font-size:15px;font-weight:700;color:'+col+'">'+name+' wins this round!</div>'
+    +'<div style="font-size:11px;color:#9ca3af;margin-top:4px">Session — Enhanced: '+imgBattleStats.enhanced+' — Raw: '+imgBattleStats.raw+' ('+imgBattleStats.total+' total)</div>';
+  ['enhanced','raw'].forEach(function(s){
+    const vb=document.getElementById('vote-img-'+s);
+    if(vb){vb.disabled=true; vb.style.opacity=s===winner?'1':'0.3';
+      if(s===winner)vb.style.background=col+'22';}
+  });
+}
+
 
 function switchTab(name,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1408,4 +1548,3 @@ def health():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
-    
